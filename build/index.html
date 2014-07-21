@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>7zip Archive Decoder</title>
+    <style>
+        body,input{
+            font-family: courier;
+        }
+    </style>
+    <script src="7zip.min.js"></script>
+    <script>
+        var file;
+        var _7zip;
+        var reader = new FileReader();
+
+        reader.onload = function(e){
+            var inData = new Uint8Array(e.target.result);
+            _7zip = new nid.SevenZip(inData);
+        }
+        function init(){
+            var fileInput = document.getElementById("fileBrowser");
+            fileInput.onchange = function(e){
+                file = this.files[0];
+                reader.readAsArrayBuffer(file);
+            }
+        }
+    </script>
+</head>
+<body onload="init()">
+<b>-------------------------------------------------------------<br>
+    7zip Archive Decoder      <br>
+    -------------------------------------------------------------</b><br>
+Select 7zip:<input type="file" id="fileBrowser"/><br>
+<div style="font-size: 12px">Developed by Nidin Vinayakan</div>
+</body>
+</body>
+</html>
