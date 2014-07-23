@@ -8,7 +8,7 @@
             font-family: courier;
         }
     </style>
-    <script src="7zip.min.js"></script>
+    <script src="7zip.js"></script>
     <script>
         var file;
         var _7zip;
@@ -16,7 +16,7 @@
 
         reader.onload = function(e){
             var inData = new Uint8Array(e.target.result);
-            _7zip = new nid.SevenZip(inData);
+            _7zip = new nid._7zip(inData);
         }
         function init(){
             var fileInput = document.getElementById("fileBrowser");
