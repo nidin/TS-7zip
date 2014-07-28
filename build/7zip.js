@@ -16,7 +16,7 @@ var ctypes;
         };
         return Uint64;
     })();
-    ctypes.Uint64 = Uint64;
+    ctypes.UInt64 = Uint64;
 })(ctypes || (ctypes = {}));
 /**
 * JavaScript Int64
@@ -122,7 +122,7 @@ var nid;
     *
     */
     (function (utils) {
-        var Uint64 = ctypes.Uint64;
+        var Uint64 = ctypes.UInt64;
         var Int64 = ctypes.Int64;
 
         var ByteArray = (function () {
@@ -1141,7 +1141,7 @@ var nid;
     * @author : Nidin Vinayakan
     */
     var ByteArray = nid.utils.ByteArray;
-    var Uint64 = ctypes.Uint64;
+    var Uint64 = ctypes.UInt64;
     var Int64 = ctypes.Int64;
 
     var SevenZip = (function () {

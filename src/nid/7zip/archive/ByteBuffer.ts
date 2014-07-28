@@ -8,7 +8,7 @@ module nid {
      */
 
     import ByteArray = nid.utils.ByteArray;
-    import Uint64 = ctypes.Uint64;
+    import Uint64 = ctypes.UInt64;
 
     export class ByteBuffer {
 

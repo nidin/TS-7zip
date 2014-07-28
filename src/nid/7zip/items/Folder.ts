@@ -8,70 +8,82 @@ module nid {
      */
 
     import ByteArray = nid.utils.ByteArray;
-    import Uint64 = ctypes.Uint64;
+    import UInt64 = ctypes.UInt64;
 
     export class ByteBuffer {
-        CObjectVector<CCoderInfo> Coders;
-        CRecordVector<CBindPair> BindPairs;
-        CRecordVector<CNum> PackStreams;
-        CRecordVector<UInt64> UnpackSizes;
-        UInt32 UnpackCRC;
-        bool UnpackCRCDefined;
+        public coders:Array<CoderInfo>;
+        public bindPairs:Array<BindPair>;
+        public packStreams:Array<number>;
+        public unpackSizes:Array<UInt64>;
+        public unpackCRC:number;//uint32
+        public unpackCRCDefined:boolean = false;
 
         constructor(){
 
         }
-
-        CFolder(): UnpackCRCDefined(false) {}
-
-        public GetUnpackSize()Uint64
+        public getUnpackSize():UInt64
         {
-            if (UnpackSizes.IsEmpty())
-                return 0;
-            for (int i = UnpackSizes.Size() - 1; i >= 0; i--)
-            if (FindBindPairForOutStream(i) < 0)
-                return UnpackSizes[i];
-            throw 1;
+            if (this.unpackSizes.length == 0) {
+                return new UInt64(0);
+            }
+
+            for (var i = this.unpackSizes.length - 1; i >= 0; i--) {
+                if (this.findBindPairForOutStream(i) < 0) {
+                    return this.unpackSizes[i];
+                }
+            }
         }
 
-CNum GetNumOutStreams() const
-    {
-CNum result = 0;
-for (int i = 0; i < Coders.Size(); i++)
-result += Coders[i].NumOutStreams;
-return result;
-}
+        public getNumOutStreams():number
+        {
+            var result:number = 0;
+            for (var i = 0; i < this.coders.length; i++){
+                result += this.coders[i].numOutStreams;
+            }
+            return result;
+        }
 
-int FindBindPairForInStream(CNum inStreamIndex) const
-    {
-for(int i = 0; i < BindPairs.Size(); i++)
-if (BindPairs[i].InIndex == inStreamIndex)
-    return i;
-return -1;
-}
-int FindBindPairForOutStream(CNum outStreamIndex) const
-    {
-for(int i = 0; i < BindPairs.Size(); i++)
-if (BindPairs[i].OutIndex == outStreamIndex)
-    return i;
-return -1;
-}
-int FindPackStreamArrayIndex(CNum inStreamIndex) const
-    {
-for(int i = 0; i < PackStreams.Size(); i++)
-if (PackStreams[i] == inStreamIndex)
-    return i;
-return -1;
-}
+        public findBindPairForInStream(inStreamIndex:number):number
+        {
+            for(var i = 0; i < this.bindPairs.length; i++) {
+                if (this.bindPairs[i].inIndex == inStreamIndex) {
+                    return i;
+                }
+            }
+            return -1;
+        }
 
-bool IsEncrypted() const
-    {
-for (int i = Coders.Size() - 1; i >= 0; i--)
-if (Coders[i].MethodID == k_AES)
-    return true;
-return false;
-}
+        public findBindPairForOutStream(outStreamIndex:number):number
+        {
+            for(var i = 0; i < this.bindPairs.length; i++) {
+                if (this.bindPairs[i].outIndex == outStreamIndex) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+        public findPackStreamArrayIndex(inStreamIndex:number):number
+        {
+            for(var i = 0; i < this.packStreams.length; i++) {
+                if (this.packStreams[i] == inStreamIndex) {
+                    return i;
+                }
+            }
+            return -1;
+        }
 
-bool CheckStructure() const;
+        public isEncrypted():boolean
+        {
+            for (var i = this.coders.length - 1; i >= 0; i--) {
+                if (this.coders[i].methodID == _7zipDefines.k_AES) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public checkStructure(){
+
+        }
     }
 }

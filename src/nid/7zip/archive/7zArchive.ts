@@ -8,7 +8,7 @@ module nid {
      */
 
     import ByteArray = nid.utils.ByteArray;
-    import Uint64 = ctypes.Uint64;
+    import Uint64 = ctypes.UInt64;
 
     export class _7zArchive {
 
@@ -140,7 +140,7 @@ module nid {
                 if (folder.UnpackCRCDefined)
                     if (CrcCalc(data, unpackSize) != folder.UnpackCRC)
                         ThrowIncorrect();
-                for (int j = 0; j < folder.PackStreams.Size(); j++)
+                for (int j = 0; j < folder.packStreams.Size(); j++)
                 {
                     UInt64 packSize = packSizes[packIndex++];
                     dataStartPos += packSize;

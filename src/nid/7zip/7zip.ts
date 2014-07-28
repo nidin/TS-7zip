@@ -10,7 +10,7 @@ module nid
      */
 
     import ByteArray = nid.utils.ByteArray;
-    import Uint64 = ctypes.Uint64;
+    import Uint64 = ctypes.UInt64;
     import Int64 = ctypes.Int64;
 
     export class _7zip extends _7zipBase
