@@ -19,7 +19,10 @@ module nid {
         public unpackCRCDefined:boolean = false;
 
         constructor(){
-
+            this.coders         = [];
+            this.bindPairs      = [];
+            this.packStreams    = [];
+            this.unpackSizes    = [];
         }
         public getUnpackSize():UInt64
         {
