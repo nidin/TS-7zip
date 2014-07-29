@@ -8,7 +8,7 @@ module nid {
      */
 
     import ByteArray = nid.utils.ByteArray;
-    import Uint64 = ctypes.UInt64;
+    import UInt64 = ctypes.UInt64;
 
     export class _7zArchive {
 
@@ -65,7 +65,7 @@ module nid {
         }
         public readDatabase(){
             this.currentBuffer = new ByteBuffer(new ByteArray(new ArrayBuffer(this.nextHeaderSize.value())));
-            var type:Uint64 = this.currentBuffer.readID();
+            var type:UInt64 = this.currentBuffer.readID();
             if (type.value() != _7zipDefines.kHeader)
             {
                 if (type._value != _7zipDefines.kEncodedHeader){
@@ -77,17 +77,17 @@ module nid {
 
         }
         public readAndDecodePackedStreams():ByteBuffer{
-            var packSizes:Array<Uint64>;
+            var packSizes:Array<UInt64>;
             var packCRCsDefined:boolean;
             var packCRCs:Array<number>;
-            CObjectVector<CFolder> folders;
+            var folders:Array<Folder>;
 
-            CRecordVector<CNum> numUnpackStreamsInFolders;
-            CRecordVector<UInt64> unpackSizes;
-            CBoolVector digestsDefined;
-            CRecordVector<UInt32> digests;
+            var numUnpackStreamsInFolders:Array<number>;
+            var unpackSizes:Array<number>;//UInt64
+            var digestsDefined:boolean;
+            var digests:Array<number>;//UInt32
 
-            ReadStreamsInfo(NULL,
+            this.readStreamsInfo(null,
                 dataOffset,
                 packSizes,
                 packCRCsDefined,
@@ -100,7 +100,7 @@ module nid {
 
             // db.ArchiveInfo.DataStartPosition2 += db.ArchiveInfo.StartPositionAfterHeader;
 
-            CNum packIndex = 0;
+            var packIndex:number = 0;
             CDecoder decoder(
     #ifdef _ST_MODE
             false
@@ -108,7 +108,9 @@ module nid {
             true
     #endif
         );
+
             UInt64 dataStartPos = baseOffset + dataOffset;
+
             for (int i = 0; i < folders.Size(); i++)
             {
                 const CFolder &folder = folders[i];

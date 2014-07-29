@@ -10,7 +10,7 @@ module nid {
     import ByteArray = nid.utils.ByteArray;
     import UInt64 = ctypes.UInt64;
 
-    export class ByteBuffer {
+    export class Folder {
         public coders:Array<CoderInfo>;
         public bindPairs:Array<BindPair>;
         public packStreams:Array<number>;

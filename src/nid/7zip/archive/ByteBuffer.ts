@@ -17,7 +17,31 @@ module nid {
         constructor(buffer:ByteArray){
             this.buffer = buffer;
         }
-        public readID():number//UInt64
+        public readByte()
+        {
+            return this.buffer.readByte();
+        }
+
+        public readBytes(data,size)
+        {
+            this.buffer.readBytes(data,0,size);
+        }
+
+        public skipData(size)
+        {
+            this.buffer.position += size;
+        }
+
+        public skipData2()
+        {
+            this.skipData(this.readNumber());
+        }
+
+        public readID():UInt64//UInt64
+        {
+            return new UInt64(this.readNumber());
+        }
+        public readNumber():number//UInt64
         {
             var firstByte:number = this.buffer.readByte();
             var mask = 0x80;
@@ -36,97 +60,29 @@ module nid {
             }
             return value;
         }
-        public readByte()
+        public readNum():number
         {
-            return this.buffer.readByte();
-        }
-
-        public readBytes(data,size)
-        {
-            this.buffer.readBytes(data,0,size);
-        }
-
-        public skipData(size)
-        {
-            this.buffer.position += size;
-        }
-
-        public SkipData()
-        {
-            SkipData(ReadNumber());
-        }
-
-        public ReadNumber()
-        {
-            if (_pos >= _size)
-                ThrowEndOfData();
-            Byte firstByte = _buffer[_pos++];
-            Byte mask = 0x80;
-            UInt64 value = 0;
-            for (int i = 0; i < 8; i++)
-            {
-                if ((firstByte & mask) == 0)
-                {
-                    UInt64 highPart = firstByte & (mask - 1);
-                    value += (highPart << (i * 8));
-                    return value;
-                }
-                if (_pos >= _size)
-                    ThrowEndOfData();
-                value |= ((UInt64)_buffer[_pos++] << (8 * i));
-                mask >>= 1;
+            var value = this.readNumber();
+            if (value > _7zipDefines.kNumMax){
+                console.log('Unsupported Num:'+value);
             }
             return value;
         }
 
-        public ReadNum()
+        public readUInt32()
         {
-            UInt64 value = ReadNumber();
-            if (value > kNumMax)
-                ThrowUnsupported();
-            return (CNum)value;
+            return this.buffer.readUnsignedInt();
         }
 
-        public ReadUInt32()
+        public readUInt64()
         {
-            if (_pos + 4 > _size)
-                ThrowEndOfData();
-            UInt32 res = Get32(_buffer + _pos);
-            _pos += 4;
-            return res;
+            return this.buffer.readUnsignedInt64();
         }
 
-        public ReadUInt64()
+        public readString():string
         {
-            if (_pos + 8 > _size)
-                ThrowEndOfData();
-            UInt64 res = Get64(_buffer + _pos);
-            _pos += 8;
-            return res;
-        }
-
-        public ReadString(UString &s)
-        {
-            const Byte *buf = _buffer + _pos;
-            size_t rem = (_size - _pos) / 2 * 2;
-            {
-                size_t i;
-                for (i = 0; i < rem; i += 2)
-                    if (buf[i] == 0 && buf[i + 1] == 0)
-                        break;
-                if (i == rem)
-                    ThrowEndOfData();
-                rem = i;
-            }
-            int len = (int)(rem / 2);
-            if (len < 0 || (size_t)len * 2 != rem)
-            ThrowUnsupported();
-            wchar_t *p = s.GetBuffer(len);
-            int i;
-            for (i = 0; i < len; i++, buf += 2)
-                p[i] = (wchar_t)Get16(buf);
-            s.ReleaseBuffer(len);
-            _pos += rem + 2;
+            var rem:number = (this.buffer.bytesAvailable) / 2 * 2;
+            return this.buffer.readUTFBytes(rem);
         }
     }
 }
