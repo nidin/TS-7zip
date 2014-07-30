@@ -1,3 +1,4 @@
+///<reference path="../../7zip.d.ts" />
 module nid {
 
     /**
@@ -10,7 +11,7 @@ module nid {
     import ByteArray = nid.utils.ByteArray;
     import UInt64 = ctypes.UInt64;
 
-    export class _7zArchive {
+    export class InArchive {
 
         private signature = [0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C];
 
@@ -18,8 +19,8 @@ module nid {
         public versionMinor:number;
 
         private startHeaderCRC:number;
-        private nextHeaderOffset:Uint64;
-        private nextHeaderSize:Uint64;
+        private nextHeaderOffset:UInt64;
+        private nextHeaderSize:UInt64;
         private nextHeaderCRC:number;
 
         public headerSize:number = 32;
@@ -27,6 +28,7 @@ module nid {
         public stream:ByteArray;
 
         private currentBuffer:ByteBuffer;
+        private db:ArchiveDatabaseEx;
 
         constructor(){
 
@@ -34,7 +36,6 @@ module nid {
         public open(stream:ByteArray){
             this.stream = stream;
             this.findAndReadSignature();
-            this.readDatabase();
         }
         public findAndReadSignature(){
             if( data[0] != this.signature[0] ||
@@ -63,20 +64,24 @@ module nid {
 
             this.stream.position = this.nextHeaderOffset.value();
         }
-        public readDatabase(){
+        public readDatabase(db){
+            this.db = db;
             this.currentBuffer = new ByteBuffer(new ByteArray(new ArrayBuffer(this.nextHeaderSize.value())));
-            var type:UInt64 = this.currentBuffer.readID();
-            if (type.value() != _7zipDefines.kHeader)
+            var type:number = this.currentBuffer.readID();//UInt64
+            if (type != _7zipDefines.kHeader)
             {
-                if (type._value != _7zipDefines.kEncodedHeader){
+                if (type != _7zipDefines.kEncodedHeader){
                     console.log('Error! Incorrect');
                 }
 
-                this.currentBuffer = this.readAndDecodePackedStreams();
+                this.currentBuffer = this.readAndDecodePackedStreams(
+                    db.ArchiveInfo.StartPositionAfterHeader,
+                    db.ArchiveInfo.DataStartPosition2,
+                    dataVector);
             }
 
         }
-        public readAndDecodePackedStreams():ByteBuffer{
+        public readAndDecodePackedStreams(baseOffset,dataOffset,dataVector){
             var packSizes:Array<UInt64>;
             var packCRCsDefined:boolean;
             var packCRCs:Array<number>;
@@ -117,34 +122,25 @@ module nid {
                 }
                 data.setCapacity(unpackSize);
 
-                CBufPtrSeqOutStream *outStreamSpec = new CBufPtrSeqOutStream;
-                CMyComPtr<ISequentialOutStream> outStream = outStreamSpec;
-                outStreamSpec->Init(data, unpackSize);
+                var outStreamSpec:BufPtrSeqOutStream = new BufPtrSeqOutStream();
+                var outStream:ISequentialOutStream = outStreamSpec;
+                outStreamSpec.init(data, unpackSize);
 
-                HRESULT result = decoder.Decode(
-                EXTERNAL_CODECS_LOC_VARS
-                _stream, dataStartPos,
-            &packSizes[packIndex], folder, outStream, NULL
-      #ifndef _NO_CRYPTO
-                , getTextPassword, passwordIsDefined
-      #endif
-      #if !defined(_7ZIP_ST) && !defined(_SFX)
-                , false, 1
-                #endif
-            );
-                RINOK(result);
+                var result = decoder.decode(_stream, dataStartPos,&packSizes[packIndex], folder, outStream);
 
-                if (folder.UnpackCRCDefined)
-                    if (CrcCalc(data, unpackSize) != folder.UnpackCRC)
-                        ThrowIncorrect();
-                for (int j = 0; j < folder.packStreams.Size(); j++)
+                if (folder.unpackCRCDefined) {
+                    if (CrcCalc(data, unpackSize) != folder.UnpackCRC){
+                        console.log('Incorrect')
+                    }
+                }
+                for (var j = 0; j < folder.packStreams.length; j++)
                 {
-                    UInt64 packSize = packSizes[packIndex++];
+                    var packSize:number = packSizes[packIndex++];//UInt64
                     dataStartPos += packSize;
-                    HeadersSize += packSize;
+                    headersSize += packSize;
                 }
             }
-            return S_OK;
+            return true;
         }
         public readHeader(){
             UInt64 type = ReadID();
@@ -352,8 +348,49 @@ module nid {
         public readSubStreamsInfo(){
 
         }
-        public readStreamsInfo(){
+        public readStreamsInfo(dataVector,dataOffset,packSizes,packCRCsDefined,packCRCs,folders,numUnpackStreamsInFolders,unpackSizes,digestsDefined,digests){
 
+                /*dataVector:Array<ByteBuffer>,
+                dataOffset:number,
+                packSizes:Array<number>,
+                packCRCsDefined,
+                packCRCs:Array<number>,
+                folders:Array<Folder>,
+                numUnpackStreamsInFolders:Array<number>,
+                unpackSizes:Array<number>,
+                digestsDefined,
+                digests:Array<number>*/
+
+            for (;;)
+            {
+                var type:number = this.currentBuffer.readID();//UInt64
+                if (type > (1 << 30)) {
+                    console.log('Incorrect');
+                }
+                switch(type)
+                {
+                    case kEnd:
+                        return;
+                    case kPackInfo:
+                    {
+                        this.readPackInfo(dataOffset, packSizes, packCRCsDefined, packCRCs);
+                        break;
+                    }
+                    case kUnpackInfo:
+                    {
+                        ReadUnpackInfo(dataVector, folders);
+                        break;
+                    }
+                    case kSubStreamsInfo:
+                    {
+                        ReadSubStreamsInfo(folders, numUnpackStreamsInFolders,
+                            unpackSizes, digestsDefined, digests);
+                        break;
+                    }
+                    default:
+                        console.log('Incorrect');
+                    }
+                }
         }
         public readBoolVector(){
 

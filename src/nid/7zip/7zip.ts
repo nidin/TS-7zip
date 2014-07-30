@@ -17,18 +17,21 @@ module nid
     {
 
         private data:ByteArray;
-        private archive:_7zArchive;
+        private archive:InArchive;
+        private db:ArchiveDatabaseEx;
 
         constructor(data?:Uint8Array){
             if(data){
                 this.load(data);
             }
+            this.db = new ArchiveDatabaseEx();
         }
         public load(data:Uint8Array){
 
             this.data = new ByteArray(data.buffer);
-            this.archive = new _7zArchive();
+            this.archive = new InArchive();
             this.archive.open(this.data);
+            this.archive.readDatabase(this.db);
         }
     }
 }

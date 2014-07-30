@@ -41,9 +41,9 @@ module nid {
             this.skipData(this.readNumber());
         }
 
-        public readID():UInt64//UInt64
+        public readID():number//UInt64
         {
-            return new UInt64(this.readNumber());
+            return this.readNumber();
         }
         public readNumber():number//UInt64
         {

@@ -10,10 +10,19 @@ module nid {
     import ByteArray = nid.utils.ByteArray;
     import UInt64 = ctypes.UInt64;
 
-    export class CoderMixer2MT {
+    export class UInt64DefVector {
 
         constructor(){
 
         }
+        public clear()
+        {
+
+        }
+        public checkSize(size):boolean
+        {
+            return false;
+        }
     }
+
 }

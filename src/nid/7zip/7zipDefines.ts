@@ -9,15 +9,16 @@ module _7zipDefines
      */
 
     export var CRC_INIT_VAL:number      = 0xFFFFFFFF;
-    export var kCrcPoly:number          = 0xEDB88320;
-    export var k_AES:number             = 0x06F10701;
-    export var kNumMax:number           = 0x7FFFFFFF;
-    export var kNumNoIndex:number       = 0xFFFFFFFF;
     export var STREAM_SEEK_SET:number   = 0;
     export var STREAM_SEEK_CUR:number   = 1;
     export var STREAM_SEEK_END:number   = 2;
 
+    export var k_AES:number             = 0x06F10701;
+    export var kNumMax:number           = 0x7FFFFFFF;
     export var kHeader:number           = 0x01;
+    export var kCrcPoly:number          = 0xEDB88320;
+    export var kHeaderSize:number       = 32;
+    export var kNumNoIndex:number       = 0xFFFFFFFF;
     export var kEncodedHeader:number    = 0x17;
 
 }
