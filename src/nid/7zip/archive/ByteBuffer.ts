@@ -14,8 +14,12 @@ module nid {
 
         private buffer:ByteArray;
 
-        constructor(buffer:ByteArray){
-            this.buffer = buffer;
+        constructor(buffer:ByteArray=null){
+            this.buffer = buffer == null?new ByteArray():buffer;
+        }
+        public setCapacity(size:number)
+        {
+            this.buffer.buffer = new ArrayBuffer(size);
         }
         public readByte()
         {

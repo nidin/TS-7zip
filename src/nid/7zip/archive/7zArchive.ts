@@ -101,26 +101,21 @@ module nid {
             // db.ArchiveInfo.DataStartPosition2 += db.ArchiveInfo.StartPositionAfterHeader;
 
             var packIndex:number = 0;
-            CDecoder decoder(
-    #ifdef _ST_MODE
-            false
-    #else
-            true
-    #endif
-        );
+            var decoder:Decoder = new Decoder();
 
-            UInt64 dataStartPos = baseOffset + dataOffset;
+            var dataStartPos:number = baseOffset + dataOffset;
 
-            for (int i = 0; i < folders.Size(); i++)
+            for (var i = 0; i < folders.length; i++)
             {
-                const CFolder &folder = folders[i];
-                dataVector.Add(CByteBuffer());
-                CByteBuffer &data = dataVector.Back();
-                UInt64 unpackSize64 = folder.GetUnpackSize();
-                size_t unpackSize = (size_t)unpackSize64;
-                if (unpackSize != unpackSize64)
-                    ThrowUnsupported();
-                data.SetCapacity(unpackSize);
+                var folder:Folder = folders[i];
+                var data:ByteBuffer = new ByteBuffer();
+                dataVector.push(data);
+                var unpackSize64 = folder.getUnpackSize();
+                var unpackSize = unpackSize64;
+                if (unpackSize != unpackSize64){
+                    console.log('Unsupported')
+                }
+                data.setCapacity(unpackSize);
 
                 CBufPtrSeqOutStream *outStreamSpec = new CBufPtrSeqOutStream;
                 CMyComPtr<ISequentialOutStream> outStream = outStreamSpec;
