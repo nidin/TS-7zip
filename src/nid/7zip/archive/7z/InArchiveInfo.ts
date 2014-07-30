@@ -12,6 +12,14 @@ module nid {
 
     export class InArchiveInfo {
 
+        public versionMajor:number;
+        public versionMinor:number;
+        public dataStartPosition:number;
+        public startPositionAfterHeader:number;
+        public dataStartPosition2:number;
+        public startPosition:number;
+        public fileInfoPopIDs:Array<number>;
+
         constructor(){
 
         }

@@ -20,15 +20,15 @@ module nid
         private archive:InArchive;
         private db:ArchiveDatabaseEx;
 
-        constructor(data?:Uint8Array){
+        constructor(data?:ArrayBuffer){
             if(data){
                 this.load(data);
             }
             this.db = new ArchiveDatabaseEx();
         }
-        public load(data:Uint8Array){
+        public load(data:ArrayBuffer){
 
-            this.data = new ByteArray(data.buffer);
+            this.data = new ByteArray(data);
             this.archive = new InArchive();
             this.archive.open(this.data);
             this.archive.readDatabase(this.db);

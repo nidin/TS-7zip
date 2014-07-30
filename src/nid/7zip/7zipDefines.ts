@@ -19,6 +19,7 @@ module _7zipDefines
     export var kCrcPoly:number          = 0xEDB88320;
     export var kHeaderSize:number       = 32;
     export var kNumNoIndex:number       = 0xFFFFFFFF;
+    export var kMajorVersion:number     = 0;
     export var kEncodedHeader:number    = 0x17;
 
 }

@@ -10,30 +10,28 @@ module nid {
     import ByteArray = nid.utils.ByteArray;
     import UInt64 = ctypes.UInt64;
 
-    export class ByteBuffer {
+    export class ByteBuffer extends ByteArray{
 
-        private buffer:ByteArray;
-
-        constructor(buffer:ByteArray=null){
-            this.buffer = buffer == null?new ByteArray():buffer;
+        constructor(buffer?: ArrayBuffer, offset?: number){
+            super(buffer,offset);
         }
         public setCapacity(size:number)
         {
-            this.buffer.buffer = new ArrayBuffer(size);
+            super.buffer = new ArrayBuffer(size);
         }
         public readByte()
         {
-            return this.buffer.readByte();
+            return super.readByte();
         }
 
         public readBytes(data,size)
         {
-            this.buffer.readBytes(data,0,size);
+            super.readBytes(data,0,size);
         }
 
         public skipData(size)
         {
-            this.buffer.position += size;
+            super.position += size;
         }
 
         public skipData2()
@@ -47,7 +45,7 @@ module nid {
         }
         public readNumber():number//UInt64
         {
-            var firstByte:number = this.buffer.readByte();
+            var firstByte:number = super.readByte();
             var mask = 0x80;
             //var value:UInt64 = new UInt64();
             var value:number = 0;
@@ -59,7 +57,7 @@ module nid {
                     value += (highPart << (i * 8));
                     return value;
                 }
-                value |= (this.buffer.readByte() << (8 * i));
+                value |= (super.readByte() << (8 * i));
                 mask >>= 1;
             }
             return value;
@@ -75,18 +73,18 @@ module nid {
 
         public readUInt32()
         {
-            return this.buffer.readUnsignedInt();
+            return super.readUnsignedInt();
         }
 
         public readUInt64()
         {
-            return this.buffer.readUnsignedInt64();
+            return super.readUnsignedInt64();
         }
 
         public readString():string
         {
-            var rem:number = (this.buffer.bytesAvailable) / 2 * 2;
-            return this.buffer.readUTFBytes(rem);
+            var rem:number = (super.bytesAvailable) / 2 * 2;
+            return super.readUTFBytes(rem);
         }
     }
 }

@@ -14,7 +14,7 @@ module nid {
         public coders:Array<CoderInfo>;
         public bindPairs:Array<BindPair>;
         public packStreams:Array<number>;
-        public unpackSizes:Array<UInt64>;
+        public unpackSizes:Array<number>;//UInt64
         public unpackCRC:number;//uint32
         public unpackCRCDefined:boolean = false;
 
@@ -24,10 +24,10 @@ module nid {
             this.packStreams    = [];
             this.unpackSizes    = [];
         }
-        public getUnpackSize():UInt64
+        public getUnpackSize():number//UInt64
         {
             if (this.unpackSizes.length == 0) {
-                return new UInt64(0);
+                return 0;
             }
 
             for (var i = this.unpackSizes.length - 1; i >= 0; i--) {

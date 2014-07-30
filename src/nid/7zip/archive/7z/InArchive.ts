@@ -19,15 +19,20 @@ module nid {
         public versionMinor:number;
 
         private startHeaderCRC:number;
-        private nextHeaderOffset:UInt64;
-        private nextHeaderSize:UInt64;
+        private nextHeaderOffset:number;//UInt64
+        private nextHeaderSize:number;//UInt64
         private nextHeaderCRC:number;
+        private archiveBeginStreamPosition:number;
 
         public headerSize:number = 32;
+        public headersSize:number = 0;
         public header:Uint8Array;
         public stream:ByteArray;
+        public emptyFileVector:Array<boolean> = [];
+        public antiFileVector:Array<boolean> = [];
+        public numEmptyStreams:number = 0;
 
-        private currentBuffer:ByteBuffer;
+        public currentBuffer:ByteBuffer;
         private db:ArchiveDatabaseEx;
 
         constructor(){
@@ -38,19 +43,19 @@ module nid {
             this.findAndReadSignature();
         }
         public findAndReadSignature(){
-            if( data[0] != this.signature[0] ||
-                data[1] != this.signature[1] ||
-                data[2] != this.signature[2] ||
-                data[3] != this.signature[3] ||
-                data[4] != this.signature[4] ||
-                data[5] != this.signature[5]){
+            if( this.stream.readByte() != this.signature[0] ||
+                this.stream.readByte() != this.signature[1] ||
+                this.stream.readByte() != this.signature[2] ||
+                this.stream.readByte() != this.signature[3] ||
+                this.stream.readByte() != this.signature[4] ||
+                this.stream.readByte() != this.signature[5]){
                 console.log('Error! Invalid file');
                 return false;
             }else{
                 console.log('7zip file');
             }
 
-            this.stream.position = 6;
+            //this.stream.position = 6;
 
             this.versionMajor = this.stream.readByte();
             this.versionMinor = this.stream.readByte();
@@ -58,16 +63,30 @@ module nid {
             this.startHeaderCRC = this.stream.readUnsignedInt();
 
             //StartHeader
-            this.nextHeaderOffset  = this.stream.readUnsignedInt64();
-            this.nextHeaderSize    = this.stream.readUnsignedInt64();
+            this.nextHeaderOffset  = this.stream.readUnsignedInt64().value();
+            this.nextHeaderSize    = this.stream.readUnsignedInt64().value();
             this.nextHeaderCRC     = this.stream.readUnsignedInt();
-
-            this.stream.position = this.nextHeaderOffset.value();
+            /**
+             * TODO: Check CRC
+             */
+            this.stream.position = this.nextHeaderOffset;
         }
         public readDatabase(db){
             this.db = db;
-            this.currentBuffer = new ByteBuffer(new ByteArray(new ArrayBuffer(this.nextHeaderSize.value())));
+            this.db.clear();
+            this.db.archiveInfo.startPosition = this.archiveBeginStreamPosition;
+
+            this.db.archiveInfo.versionMajor = this.versionMajor;
+            this.db.archiveInfo.versionMinor = this.versionMinor;
+
+            if (db.archiveInfo.version.major != _7zipDefines.kMajorVersion) {
+                console.log('UnsupportedVersion');
+                return false;
+            }
+
+            /*this.currentBuffer = new ByteBuffer(new ByteArray(new ArrayBuffer(this.nextHeaderSize.value())));
             var type:number = this.currentBuffer.readID();//UInt64
+
             if (type != _7zipDefines.kHeader)
             {
                 if (type != _7zipDefines.kEncodedHeader){
@@ -75,24 +94,88 @@ module nid {
                 }
 
                 this.currentBuffer = this.readAndDecodePackedStreams(
-                    db.ArchiveInfo.StartPositionAfterHeader,
-                    db.ArchiveInfo.DataStartPosition2,
+                    db.archiveInfo.startPositionAfterHeader,
+                    db.archiveInfo.dataStartPosition2,
                     dataVector);
+            }*/
+
+            if (this.nextHeaderSize == 0) {
+                return true;
+            }
+            if (this.nextHeaderSize > 0xFFFFFFFF){
+                return false;
+            }
+            if (this.nextHeaderOffset < 0){
+                return false;
             }
 
+            this.stream.position = this.nextHeaderOffset;
+
+            this.currentBuffer = new ByteBuffer();
+            this.currentBuffer.setCapacity(this.nextHeaderSize);
+
+            this.stream.readBytes(this.currentBuffer,this.nextHeaderSize);
+            this.headersSize += _7zipDefines.kHeaderSize + this.nextHeaderSize;
+            db.phySize = _7zipDefines.kHeaderSize + this.nextHeaderOffset + this.nextHeaderSize;
+
+            /**
+             * TODO: Check CRC
+             */
+            /*if (this.CrcCalc(buffer2, this.nextHeaderSize) != this.nextHeaderCRC){
+                console.log('Incorrect');
+            }*/
+
+            var dataVector:Array<ByteBuffer> = [];
+
+            var type = this.currentBuffer.readID();
+
+            if (type != kHeader)
+            {
+                if (type != kEncodedHeader){
+                    console.log('Incorrect');
+                }
+                var result = this.readAndDecodePackedStreams(
+                    db.archiveInfo.startPositionAfterHeader,
+                    db.archiveInfo.dataStartPosition2,
+                    dataVector);
+
+                if(result){
+                    console.log('readAndDecodePackedStreams:OK');
+                }
+
+                if (dataVector.length == 0){
+                    return true;
+                }
+                if (dataVector.length > 1){
+                    console.log('Incorrect');
+                }
+
+                /*streamSwitch.remove();
+                streamSwitch.set(this, dataVector[0]);*/
+
+                this.currentBuffer = dataVector[0];
+                if (this.currentBuffer.readID() != kHeader){
+                    console.log('Incorrect');
+                }
+            }
+
+            db.headersSize = headersSize;
+
+            return this.readHeader();
         }
         public readAndDecodePackedStreams(baseOffset,dataOffset,dataVector){
-            var packSizes:Array<UInt64>;
+            var packSizes:Array<number> = [];//UInt64
             var packCRCsDefined:boolean;
-            var packCRCs:Array<number>;
-            var folders:Array<Folder>;
+            var packCRCs:Array<number> = [];
+            var folders:Array<Folder> = [];
 
-            var numUnpackStreamsInFolders:Array<number>;
-            var unpackSizes:Array<number>;//UInt64
+            var numUnpackStreamsInFolders:Array<number> = [];
+            var unpackSizes:Array<number> = [];//UInt64
             var digestsDefined:boolean;
-            var digests:Array<number>;//UInt32
+            var digests:Array<number> = [];//UInt32
 
-            this.readStreamsInfo(null,
+            this.readStreamsInfo(
+                null,
                 dataOffset,
                 packSizes,
                 packCRCsDefined,
@@ -103,7 +186,7 @@ module nid {
                 digestsDefined,
                 digests);
 
-            // db.ArchiveInfo.DataStartPosition2 += db.ArchiveInfo.StartPositionAfterHeader;
+            // db.archiveInfo.DataStartPosition2 += db.archiveInfo.StartPositionAfterHeader;
 
             var packIndex:number = 0;
             var decoder:Decoder = new Decoder();
@@ -126,218 +209,228 @@ module nid {
                 var outStream:ISequentialOutStream = outStreamSpec;
                 outStreamSpec.init(data, unpackSize);
 
-                var result = decoder.decode(_stream, dataStartPos,&packSizes[packIndex], folder, outStream);
+                var result = decoder.decode(this.stream, dataStartPos,packSizes[packIndex], folder, outStream);
 
                 if (folder.unpackCRCDefined) {
-                    if (CrcCalc(data, unpackSize) != folder.UnpackCRC){
+                    /*if (CrcCalc(data, unpackSize) != folder.UnpackCRC){
                         console.log('Incorrect')
-                    }
+                    }*/
                 }
                 for (var j = 0; j < folder.packStreams.length; j++)
                 {
                     var packSize:number = packSizes[packIndex++];//UInt64
                     dataStartPos += packSize;
-                    headersSize += packSize;
+                    this.headersSize += packSize;
                 }
             }
             return true;
         }
         public readHeader(){
-            UInt64 type = ReadID();
+            var type = this.currentBuffer.readID();
 
-            if (type == NID::kArchiveProperties)
+            if (type == kArchiveProperties)
             {
-                ReadArchiveProperties(db.ArchiveInfo);
-                type = ReadID();
+                this.readArchiveProperties(this.db.archiveInfo);
+                type = this.currentBuffer.readID();
             }
 
-            CObjectVector<CByteBuffer> dataVector;
+            var dataVector:Array<ByteBuffer> = [];
 
-            if (type == NID::kAdditionalStreamsInfo)
+            if (type == kAdditionalStreamsInfo)
             {
-                HRESULT result = ReadAndDecodePackedStreams(
-                EXTERNAL_CODECS_LOC_VARS
-                db.ArchiveInfo.StartPositionAfterHeader,
-                    db.ArchiveInfo.DataStartPosition2,
-                    dataVector
-        #ifndef _NO_CRYPTO
-                , getTextPassword, passwordIsDefined
-        #endif
-            );
-                RINOK(result);
-                db.ArchiveInfo.DataStartPosition2 += db.ArchiveInfo.StartPositionAfterHeader;
-                type = ReadID();
+                var result = this.readAndDecodePackedStreams(
+                    this.db.archiveInfo.startPositionAfterHeader,
+                    this.db.archiveInfo.dataStartPosition2,
+                    dataVector);
+
+                if(result){
+                    console.log('readAndDecodePackedStreams:OK');
+                }
+                this.db.archiveInfo.dataStartPosition2 += this.db.archiveInfo.startPositionAfterHeader;
+                type = this.currentBuffer.readID();
             }
 
-            CRecordVector<UInt64> unpackSizes;
-            CBoolVector digestsDefined;
-            CRecordVector<UInt32> digests;
+            var unpackSizes:Array<number>;
+            var digestsDefined:boolean;
+            var digests:Array<number>;
 
-            if (type == NID::kMainStreamsInfo)
+            if (type == kMainStreamsInfo)
             {
-                ReadStreamsInfo(&dataVector,
-                    db.ArchiveInfo.DataStartPosition,
-                    db.PackSizes,
-                    db.PackCRCsDefined,
-                    db.PackCRCs,
-                    db.Folders,
-                    db.NumUnpackStreamsVector,
+                this.readStreamsInfo(dataVector,
+                    this.db.archiveInfo.dataStartPosition,
+                    this.db.packSizes,
+                    this.db.packCRCsDefined,
+                    this.db.packCRCs,
+                    this.db.folders,
+                    this.db.numUnpackStreamsVector,
                     unpackSizes,
                     digestsDefined,
                     digests);
-                db.ArchiveInfo.DataStartPosition += db.ArchiveInfo.StartPositionAfterHeader;
-                type = ReadID();
+                this.db.archiveInfo.dataStartPosition += this.db.archiveInfo.startPositionAfterHeader;
+                type = this.currentBuffer.readID();
             }
-        else
+            else
             {
-                for (int i = 0; i < db.Folders.Size(); i++)
+                for (var i = 0; i < this.db.folders.length; i++)
                 {
-                    db.NumUnpackStreamsVector.Add(1);
-                    CFolder &folder = db.Folders[i];
-                    unpackSizes.Add(folder.GetUnpackSize());
-                    digestsDefined.Add(folder.UnpackCRCDefined);
-                    digests.Add(folder.UnpackCRC);
+                    this.db.numUnpackStreamsVector.push(1);
+                    var folder:Folder = this.db.folders[i];
+                    unpackSizes.push(folder.getUnpackSize());
+                    digestsDefined.push(folder.unpackCRCDefined);
+                    digests.push(folder.unpackCRC);
                 }
             }
 
-            db.Files.Clear();
+            this.db.files = [];
 
-            if (type == NID::kEnd)
-            return S_OK;
-            if (type != NID::kFilesInfo)
-            ThrowIncorrect();
+            if (type == kEnd){
+                return true;
+            }
+            if (type != kFilesInfo){
+                console.log('Incorrect');
+            }
 
-            CNum numFiles = ReadNum();
-            db.Files.Reserve(numFiles);
-            CNum i;
-            for (i = 0; i < numFiles; i++)
-                db.Files.Add(CFileItem());
+            var numFiles:number = this.currentBuffer.readNum();
+            //this.db.files.reserve(numFiles);
+            var i;
+            for (i = 0; i < numFiles; i++) {
+                this.db.files.push(new FileItem());
+            }
 
-            db.ArchiveInfo.FileInfoPopIDs.Add(NID::kSize);
-            if (!db.PackSizes.IsEmpty())
-                db.ArchiveInfo.FileInfoPopIDs.Add(NID::kPackInfo);
-            if (numFiles > 0  && !digests.IsEmpty())
-                db.ArchiveInfo.FileInfoPopIDs.Add(NID::kCRC);
+            this.db.archiveInfo.fileInfoPopIDs.push(kSize);
+            if (!(this.db.packSizes.length == 0))
+                this.db.archiveInfo.fileInfoPopIDs.push(kPackInfo);
+            if (numFiles > 0  && !(digests.length == 0))
+                this.db.archiveInfo.fileInfoPopIDs.push(kCRC);
 
-            CBoolVector emptyStreamVector;
-            BoolVector_Fill_False(emptyStreamVector, (int)numFiles);
-            CBoolVector emptyFileVector;
-            CBoolVector antiFileVector;
-            CNum numEmptyStreams = 0;
+            var emptyStreamVector:Array<boolean> = [];
+            this.bool()
 
             for (;;)
             {
-                UInt64 type = ReadID();
-                if (type == NID::kEnd)
-                break;
-                UInt64 size = ReadNumber();
-                size_t ppp = _inByteBack->_pos;
-                bool addPropIdToList = true;
-                bool isKnownType = true;
-                if (type > ((UInt32)1 << 30))
-                isKnownType = false;
-            else switch((UInt32)type)
-            {
-            case NID::kName:
-            {
-                CStreamSwitch streamSwitch;
-                streamSwitch.Set(this, &dataVector);
-                for (int i = 0; i < db.Files.Size(); i++)
-                _inByteBack->ReadString(db.Files[i].Name);
-                break;
-            }
-            case NID::kWinAttributes:
-            {
-                CBoolVector boolVector;
-                ReadBoolVector2(db.Files.Size(), boolVector);
-                CStreamSwitch streamSwitch;
-                streamSwitch.Set(this, &dataVector);
-                for (i = 0; i < numFiles; i++)
-                {
-                    CFileItem &file = db.Files[i];
-                    file.AttribDefined = boolVector[i];
-                    if (file.AttribDefined)
-                        file.Attrib = ReadUInt32();
+                var type = this.currentBuffer.readID();
+                if (type == kEnd){
+                    break;
                 }
-                break;
-            }
-            case NID::kEmptyStream:
-            {
-                ReadBoolVector(numFiles, emptyStreamVector);
-                for (i = 0; i < (CNum)emptyStreamVector.Size(); i++)
-                if (emptyStreamVector[i])
-                    numEmptyStreams++;
-
-                BoolVector_Fill_False(emptyFileVector, numEmptyStreams);
-                BoolVector_Fill_False(antiFileVector, numEmptyStreams);
-
-                break;
-            }
-            case NID::kEmptyFile:  ReadBoolVector(numEmptyStreams, emptyFileVector); break;
-            case NID::kAnti:  ReadBoolVector(numEmptyStreams, antiFileVector); break;
-            case NID::kStartPos:  ReadUInt64DefVector(dataVector, db.StartPos, (int)numFiles); break;
-            case NID::kCTime:  ReadUInt64DefVector(dataVector, db.CTime, (int)numFiles); break;
-            case NID::kATime:  ReadUInt64DefVector(dataVector, db.ATime, (int)numFiles); break;
-            case NID::kMTime:  ReadUInt64DefVector(dataVector, db.MTime, (int)numFiles); break;
-            case NID::kDummy:
-            {
-                for (UInt64 j = 0; j < size; j++)
-                if (ReadByte() != 0)
-                    ThrowIncorrect();
-                addPropIdToList = false;
-                break;
-            }
-            default:
-                addPropIdToList = isKnownType = false;
-            }
-                if (isKnownType)
-                {
-                    if(addPropIdToList)
-                        db.ArchiveInfo.FileInfoPopIDs.Add(type);
+                var size:number = this.currentBuffer.readNumber();//UInt64
+                var ppp:number = this.currentBuffer.position;
+                var addPropIdToList:boolean = true;
+                var isKnownType:boolean = true;
+                if (type > (1 << 30)){
+                    isKnownType = false;
                 }
-                else
-                    SkipData(size);
-                bool checkRecordsSize = (db.ArchiveInfo.Version.Major > 0 ||
-                    db.ArchiveInfo.Version.Minor > 2);
-                if (checkRecordsSize && _inByteBack->_pos - ppp != size)
-                ThrowIncorrect();
-            }
-
-                CNum emptyFileIndex = 0;
-                CNum sizeIndex = 0;
-
-                CNum numAntiItems = 0;
-                for (i = 0; i < numEmptyStreams; i++)
-                    if (antiFileVector[i])
-                        numAntiItems++;
-
-                for (i = 0; i < numFiles; i++)
+                else switch(type)
                 {
-                    CFileItem &file = db.Files[i];
-                    bool isAnti;
-                    file.HasStream = !emptyStreamVector[i];
-                    if (file.HasStream)
+                    case kName:
                     {
-                        file.IsDir = false;
-                        isAnti = false;
-                        file.Size = unpackSizes[sizeIndex];
-                        file.Crc = digests[sizeIndex];
-                        file.CrcDefined = digestsDefined[sizeIndex];
-                        sizeIndex++;
+                        var streamSwitch:StreamSwitch = new StreamSwitch();
+                        streamSwitch.set(this, dataVector);
+                        for (var i = 0; i < this.db.files.length; i++)
+                            this.currentBuffer.readString(this.db.files[i].name);
+                        break;
+                    }
+                    case kWinAttributes:
+                    {
+                        var boolVector:Array<boolean> = [];
+                        this.readBoolVector2(this.db.files.length, boolVector);
+                        streamSwitch = new StreamSwitch();
+                        streamSwitch.set(this, dataVector);
+                        for (i = 0; i < numFiles; i++)
+                        {
+                            var file:FileItem = this.db.files[i];
+                            file.attribDefined = boolVector[i];
+                            if (file.attribDefined)
+                                file.attrib = this.currentBuffer.readUInt32();
+                        }
+                        break;
+                    }
+                    case kEmptyStream:
+                    {
+                        this.readBoolVector(numFiles, emptyStreamVector);
+                        for (i = 0; i < emptyStreamVector.length; i++)
+                        if (emptyStreamVector[i]) {
+                            this.numEmptyStreams++;
+                        }
+
+                        this.boolVector_Fill_False(this.emptyFileVector, this.numEmptyStreams);
+                        this.boolVector_Fill_False(this.antiFileVector, this.numEmptyStreams);
+
+                        break;
+                    }
+                    case kEmptyFile:    this.currentBuffer.readBoolVector(numEmptyStreams, emptyFileVector); break;
+                    case kAnti:         this.currentBuffer.readBoolVector(numEmptyStreams, antiFileVector); break;
+                    case kStartPos:     this.currentBuffer.readUInt64DefVector(dataVector, this.db.startPos, numFiles); break;
+                    case kCTime:  ReadUInt64DefVector(dataVector, this.db.cTime, numFiles); break;
+                    case kATime:  ReadUInt64DefVector(dataVector, this.db.aTime, numFiles); break;
+                    case kMTime:  ReadUInt64DefVector(dataVector, this.db.mTime, numFiles); break;
+                    case kDummy:
+                    {
+                        for (var j = 0; j < size; j++)
+                        if (this.currentBuffer.readByte() != 0) {
+                            console.log('Incorrect');
+                        }
+                        addPropIdToList = false;
+                        break;
+                    }
+                    default:
+                        addPropIdToList = isKnownType = false;
+                }
+                    if (isKnownType)
+                    {
+                        if(addPropIdToList)
+                            this.db.archiveInfo.fileInfoPopIDs.Add(type);
                     }
                     else
-                    {
-                        file.IsDir = !emptyFileVector[emptyFileIndex];
-                        isAnti = antiFileVector[emptyFileIndex];
-                        emptyFileIndex++;
-                        file.Size = 0;
-                        file.CrcDefined = false;
-                    }
-                    if (numAntiItems != 0)
-                        db.IsAnti.Add(isAnti);
+                        SkipData(size);
+                    bool checkRecordsSize = (this.db.archiveInfo.Version.Major > 0 ||
+                        this.db.archiveInfo.Version.Minor > 2);
+                    if (checkRecordsSize && _inByteBack->_pos - ppp != size)
+                    ThrowIncorrect();
                 }
-                return S_OK;
 
+                    CNum emptyFileIndex = 0;
+                    CNum sizeIndex = 0;
+
+                    CNum numAntiItems = 0;
+                    for (i = 0; i < numEmptyStreams; i++)
+                        if (antiFileVector[i])
+                            numAntiItems++;
+
+                    for (i = 0; i < numFiles; i++)
+                    {
+                        CFileItem &file = this.db.Files[i];
+                        bool isAnti;
+                        file.HasStream = !emptyStreamVector[i];
+                        if (file.HasStream)
+                        {
+                            file.IsDir = false;
+                            isAnti = false;
+                            file.Size = unpackSizes[sizeIndex];
+                            file.Crc = digests[sizeIndex];
+                            file.CrcDefined = digestsDefined[sizeIndex];
+                            sizeIndex++;
+                        }
+                        else
+                        {
+                            file.IsDir = !emptyFileVector[emptyFileIndex];
+                            isAnti = antiFileVector[emptyFileIndex];
+                            emptyFileIndex++;
+                            file.Size = 0;
+                            file.CrcDefined = false;
+                        }
+                        if (numAntiItems != 0)
+                            this.db.IsAnti.Add(isAnti);
+                    }
+                    return S_OK;
+
+                }
+            }
+
+
+        public boolVector_Fill_False(boolVector,size){
+            for(var i = 0;i < size;i++) {
+                boolVector[i] = false;
+            }
         }
         public readPackInfo(){
 
@@ -348,9 +441,8 @@ module nid {
         public readSubStreamsInfo(){
 
         }
-        public readStreamsInfo(dataVector,dataOffset,packSizes,packCRCsDefined,packCRCs,folders,numUnpackStreamsInFolders,unpackSizes,digestsDefined,digests){
-
-                /*dataVector:Array<ByteBuffer>,
+        public readStreamsInfo(
+                dataVector:Array<ByteBuffer>,
                 dataOffset:number,
                 packSizes:Array<number>,
                 packCRCsDefined,
@@ -359,7 +451,7 @@ module nid {
                 numUnpackStreamsInFolders:Array<number>,
                 unpackSizes:Array<number>,
                 digestsDefined,
-                digests:Array<number>*/
+                digests:Array<number>){
 
             for (;;)
             {
