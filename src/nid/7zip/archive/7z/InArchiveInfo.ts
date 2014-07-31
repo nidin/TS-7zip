@@ -21,7 +21,16 @@ module nid {
         public fileInfoPopIDs:Array<number>;
 
         constructor(){
-
+            this.fileInfoPopIDs = [];
+        }
+        public clear(){
+            this.versionMajor = null;
+            this.versionMinor = null;
+            this.dataStartPosition = null;
+            this.startPositionAfterHeader = null;
+            this.dataStartPosition2 = null;
+            this.startPosition = null;
+            this.fileInfoPopIDs = [];
         }
     }
 }

@@ -12,6 +12,16 @@ module nid {
 
     export class FileItem2 {
 
+        public cTime:number;//UInt64
+        public aTime:number;//UInt64
+        public mTime:number;//UInt64
+        public startPos:number;//UInt64
+        public CTimeDefined:boolean;
+        public ATimeDefined:boolean;
+        public MTimeDefined:boolean;
+        public startPosDefined:boolean;
+        public IsAnti:boolean;
+
         constructor(){
 
         }

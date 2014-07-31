@@ -22,23 +22,30 @@ module nid {
         public phySize:number;//UInt64
 
         constructor(){
-
+            this.archiveInfo = new InArchiveInfo();
         }
         public clear()
         {
             super.clear();
-            this.archiveInfo = [];
-            this.packStreamStartPositions = [];
-            this.folderStartPackStreamIndex = [];
-            this.folderStartFileIndex = [];
-            this.fileIndexToFolderIndexMap = [];
+            this.archiveInfo.clear();
+            this.packStreamStartPositions.clear();
+            this.folderStartPackStreamIndex.clear();
+            this.folderStartFileIndex.clear();
+            this.fileIndexToFolderIndexMap.clear();
 
             this.headersSize = 0;
             this.phySize = 0;
         }
 
         public fillFolderStartPackStream(){
-
+            this.folderStartPackStreamIndex.clear();
+            //this.folderStartPackStreamIndex.Reserve(Folders.Size());
+            var startPos:number = 0;
+            for (var i = 0; i < this.folders.length; i++)
+            {
+                this.folderStartPackStreamIndex.push(startPos);
+                startPos += this.folders[i].packStreams.length;
+            }
         }
         public fillStartPos(){
 

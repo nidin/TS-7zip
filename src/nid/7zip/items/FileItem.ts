@@ -11,11 +11,29 @@ module nid {
     import UInt64 = ctypes.UInt64;
 
     export class FileItem {
+        public size:number;//UInt64
+        public attrib;//UInt32
+        public CRC;//UInt32
+        public name:string;
+
+        public hasStream:boolean; // Test it !!! it means that there is
+        // stream in some folder. It can be empty stream
+        public isDir:boolean;
+        public CRCDefined:boolean;
+        public attribDefined:boolean;
+
 
         constructor(){
-
+            this.hasStream      = true;
+            this.isDir          = false;
+            this.CRCDefined     = false;
+            this.attribDefined  = false;
         }
-
+        public setAttrib(attrib:number)//UInt32
+        {
+            this.attribDefined = true;
+            this.attrib = attrib;
+        }
     }
 
 }
