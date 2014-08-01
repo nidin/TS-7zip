@@ -10,18 +10,12 @@ module nid {
     import ByteArray = nid.utils.ByteArray;
     import UInt64 = ctypes.UInt64;
 
-    export class UInt64DefVector {
-
+    export class LockedInStream extends ByteBuffer{
         constructor(){
-
+            super();
         }
-        public clear()
-        {
-
-        }
-        public checkSize(size):boolean
-        {
-            return false;
+        public init(inStream){
+            super.buffer = inStream.buffer;
         }
     }
 

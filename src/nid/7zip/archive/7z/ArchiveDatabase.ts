@@ -25,6 +25,20 @@ module nid {
         public isAnti:Array<boolean>;
 
         constructor(){
+            this.packSizes = [];
+            this.packCRCsDefined = [];
+            this.packCRCs = [];
+            this.folders = [];
+            this.numUnpackStreamsVector = [];
+            this.files = [];
+
+            this.cTime = new UInt64DefVector();
+            this.aTime = new UInt64DefVector();
+            this.aTime = new UInt64DefVector();
+            this.mTime = new UInt64DefVector();
+            this.startPos = new UInt64DefVector();
+
+            this.isAnti = [];
 
         }
 

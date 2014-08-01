@@ -8,7 +8,7 @@ module nid {
      */
     export class CoderInfo
     {
-        public methodID:UInt64;
+        public methodID:number;//UInt64
         public props:ByteBuffer;
         public numInStreams:number;
         public numOutStreams:number;

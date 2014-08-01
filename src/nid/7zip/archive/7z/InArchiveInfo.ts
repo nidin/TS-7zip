@@ -22,14 +22,15 @@ module nid {
 
         constructor(){
             this.fileInfoPopIDs = [];
+            this.dataStartPosition2 = 0;
         }
         public clear(){
             this.versionMajor = null;
             this.versionMinor = null;
             this.dataStartPosition = null;
             this.startPositionAfterHeader = null;
-            this.dataStartPosition2 = null;
-            this.startPosition = null;
+            this.dataStartPosition2 = 0;
+            this.startPosition = 0;
             this.fileInfoPopIDs = [];
         }
     }

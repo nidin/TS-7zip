@@ -12,34 +12,15 @@ module nid {
     import Uint64 = ctypes.UInt64;
     import Int64 = ctypes.Int64;
 
-    export class InByte2 extends ByteArray{
+    export class InByte2 extends ByteBuffer{
 
         constructor() {
             super();
-
         }
 
-        public init(buffer,size)
+        public init(data,size)
         {
-            super.buffer = buffer;
-        }
-        public skipData() {
-
-        }
-        public readNumber() {
-
-        }
-        public readNum() {
-
-        }
-        public readUInt32() {
-
-        }
-        public readUInt64() {
-
-        }
-        public readString(){
-
+            super.buffer = data.buffer;
         }
     }
 }

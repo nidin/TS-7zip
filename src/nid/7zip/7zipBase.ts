@@ -51,8 +51,12 @@ module nid
                 }
             }
         }
-        public CrcCalc(buf, size:number):number{
 
+        /**
+         * TODO : implement CRC check
+         */
+        public CrcCalc(buf, size:number):number{
+            return 0;
         }
         public CrcCalc1(buf, size:number):number
         {

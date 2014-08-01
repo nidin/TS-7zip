@@ -12,11 +12,42 @@ module nid {
 
     export class StreamSwitch {
 
+        private needRemove:boolean;
+        private archive:InArchive;
+
         constructor(){
 
         }
-        public set(archive:InArchive,buffer:ByteBuffer){
-            archive.currentBuffer = buffer;
+        public remove(){
+            if(this.needRemove){
+                this.archive.deleteByteStream();
+                this.needRemove = false;
+            }
+        }
+
+        /**
+         * TODO : Must be optimize this methods, current implementation is copied from C++.
+         */
+        public set1(archive:InArchive,data:ByteBuffer,size:number){
+            this.remove();
+            this.archive = archive;
+            this.archive.addByteStream(data, size);
+            this.needRemove = true;
+        }
+        public set2(archive:InArchive,buffer:ByteBuffer){
+            this.set1(archive,buffer,buffer.length);
+        }
+        public set3(archive:InArchive,dataVector:Array<ByteBuffer>){
+            this.remove();
+            var external:number = archive.inByteBack.readByte();
+            if (external != 0)
+            {
+                var dataIndex:number = archive.inByteBack.readNum();
+                if (dataIndex < 0 || dataIndex >= dataVector.length){
+                    console.log('Incorrect');
+                }
+                this.set2(archive, dataVector[dataIndex]);
+            }
         }
     }
 

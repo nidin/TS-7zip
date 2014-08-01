@@ -22,18 +22,21 @@ module nid {
         private nextHeaderOffset:number;//UInt64
         private nextHeaderSize:number;//UInt64
         private nextHeaderCRC:number;
-        private archiveBeginStreamPosition:number;
+        private archiveBeginStreamPosition:number = 0;
 
+        public dataOffset:number = 0;
         public headerSize:number = 32;
         public headersSize:number = 0;
         public header:Uint8Array;
         public stream:ByteArray;
 
-        public currentBuffer:ByteBuffer;
+        public inByteVector:Array<InByte2>;
+        public inByteBack:InByte2;
+        public inByteBack:ByteBuffer;
         private db:ArchiveDatabaseEx;
 
         constructor(){
-
+            this.inByteVector = [];
         }
         public open(stream:ByteArray){
             this.stream = stream;
@@ -51,8 +54,6 @@ module nid {
             }else{
                 console.log('7zip file');
             }
-
-            //this.stream.position = 6;
 
             this.versionMajor = this.stream.readByte();
             this.versionMinor = this.stream.readByte();
@@ -72,48 +73,34 @@ module nid {
             this.db = db;
             this.db.clear();
             this.db.archiveInfo.startPosition = this.archiveBeginStreamPosition;
-
             this.db.archiveInfo.versionMajor = this.versionMajor;
             this.db.archiveInfo.versionMinor = this.versionMinor;
 
-            if (db.archiveInfo.version.major != _7zipDefines.kMajorVersion) {
+            this.dataOffset = this.archiveBeginStreamPosition;
+
+            if (this.versionMajor != _7zipDefines.kMajorVersion) {
                 console.log('UnsupportedVersion');
                 return false;
             }
 
-            /*this.currentBuffer = new ByteBuffer(new ByteArray(new ArrayBuffer(this.nextHeaderSize.value())));
-            var type:number = this.currentBuffer.readID();//UInt64
-
-            if (type != _7zipDefines.kHeader)
-            {
-                if (type != _7zipDefines.kEncodedHeader){
-                    console.log('Error! Incorrect');
-                }
-
-                this.currentBuffer = this.readAndDecodePackedStreams(
-                    db.archiveInfo.startPositionAfterHeader,
-                    db.archiveInfo.dataStartPosition2,
-                    dataVector);
-            }*/
+            this.dataOffset = this.archiveBeginStreamPosition + _7zipDefines.kHeaderSize;
+            this.db.archiveInfo.startPositionAfterHeader = this.dataOffset;
 
             if (this.nextHeaderSize == 0) {
                 return true;
             }
-            if (this.nextHeaderSize > 0xFFFFFFFF){
-                return false;
-            }
-            if (this.nextHeaderOffset < 0){
+            if (this.nextHeaderSize > 0xFFFFFFFF || this.nextHeaderOffset < 0){
                 return false;
             }
 
             this.stream.position = this.nextHeaderOffset;
 
-            this.currentBuffer = new ByteBuffer();
-            this.currentBuffer.setCapacity(this.nextHeaderSize);
+            this.inByteBack = new ByteBuffer();
+            this.inByteBack.setCapacity(this.nextHeaderSize);
 
-            this.stream.readBytes(this.currentBuffer,this.nextHeaderSize);
+            this.stream.readBytes(this.inByteBack,this.nextHeaderSize);
             this.headersSize += _7zipDefines.kHeaderSize + this.nextHeaderSize;
-            db.phySize = _7zipDefines.kHeaderSize + this.nextHeaderOffset + this.nextHeaderSize;
+            this.db.phySize = _7zipDefines.kHeaderSize + this.nextHeaderOffset + this.nextHeaderSize;
 
             /**
              * TODO: Check CRC
@@ -124,17 +111,14 @@ module nid {
 
             var dataVector:Array<ByteBuffer> = [];
 
-            var type = this.currentBuffer.readID();
+            var type = this.inByteBack.readID();
 
             if (type != kHeader)
             {
                 if (type != kEncodedHeader){
                     console.log('Incorrect');
                 }
-                var result = this.readAndDecodePackedStreams(
-                    db.archiveInfo.startPositionAfterHeader,
-                    db.archiveInfo.dataStartPosition2,
-                    dataVector);
+                var result = this.readAndDecodePackedStreams(dataVector);
 
                 if(result){
                     console.log('readAndDecodePackedStreams:OK');
@@ -150,31 +134,32 @@ module nid {
                 /*streamSwitch.remove();
                 streamSwitch.set(this, dataVector[0]);*/
 
-                this.currentBuffer = dataVector[0];
-                if (this.currentBuffer.readID() != kHeader){
+                this.inByteBack = dataVector[0];
+
+                if (this.inByteBack.readID() != kHeader){
                     console.log('Incorrect');
                 }
             }
 
-            db.headersSize = headersSize;
+            db.headersSize = this.headersSize;
 
             return this.readHeader();
         }
 
-        public readAndDecodePackedStreams(baseOffset,dataOffset,dataVector){
+        public readAndDecodePackedStreams(dataVector)
+        {
             var packSizes:Array<number> = [];//UInt64
-            var packCRCsDefined:boolean;
+            var packCRCsDefined:Array<boolean> = [];
             var packCRCs:Array<number> = [];
             var folders:Array<Folder> = [];
 
             var numUnpackStreamsInFolders:Array<number> = [];
             var unpackSizes:Array<number> = [];//UInt64
-            var digestsDefined:boolean;
+            var digestsDefined:Array<boolean> = [];
             var digests:Array<number> = [];//UInt32
 
             this.readStreamsInfo(
                 null,
-                dataOffset,
                 packSizes,
                 packCRCsDefined,
                 packCRCs,
@@ -182,32 +167,33 @@ module nid {
                 numUnpackStreamsInFolders,
                 unpackSizes,
                 digestsDefined,
-                digests);
+                digests
+            );
 
             // db.archiveInfo.DataStartPosition2 += db.archiveInfo.StartPositionAfterHeader;
 
             var packIndex:number = 0;
             var decoder:Decoder = new Decoder();
 
-            var dataStartPos:number = baseOffset + dataOffset;
+            var dataStartPos:number = this.dataOffset;
 
             for (var i = 0; i < folders.length; i++)
             {
                 var folder:Folder = folders[i];
                 var data:ByteBuffer = new ByteBuffer();
                 dataVector.push(data);
-                var unpackSize64 = folder.getUnpacklength;
+                var unpackSize64 = folder.getUnpackSize();
                 var unpackSize = unpackSize64;
-                if (unpackSize != unpackSize64){
+                /*if (unpackSize != unpackSize64){
                     console.log('Unsupported')
-                }
+                }*/
                 data.setCapacity(unpackSize);
 
-                var outStreamSpec:BufPtrSeqOutStream = new BufPtrSeqOutStream();
+                /*var outStreamSpec:BufPtrSeqOutStream = new BufPtrSeqOutStream();
                 var outStream:ISequentialOutStream = outStreamSpec;
-                outStreamSpec.init(data, unpackSize);
+                outStreamSpec.init(data, unpackSize);*/
 
-                var result = decoder.decode(this.stream, dataStartPos,packSizes[packIndex], folder, outStream);
+                var result = decoder.decode(this.stream, dataStartPos,packSizes[packIndex], folder, data);
 
                 if (folder.unpackCRCDefined) {
                     /*if (CrcCalc(data, unpackSize) != folder.UnpackCRC){
@@ -225,10 +211,10 @@ module nid {
         }
         public readAndDecodePackedStreams2(dataVector,folders){
             this.waitAttribute(kFolder);
-            var numFolders:number = this.currentBuffer.readNum();
+            var numFolders:number = this.inByteBack.readNum();
 
             var streamSwitch:StreamSwitch = new StreamSwitch();
-            streamSwitch.set(this, dataVector);
+            streamSwitch.set3(this, dataVector);
             folders.clear();
             //folders.Reserve(numFolders);
             for (var i = 0; i < numFolders; i++)
@@ -247,13 +233,13 @@ module nid {
                 var numOutStreams = folder.getNumOutStreams();
                 //folder.unpackSizes.Reserve(numOutStreams);
                 for (var j = 0; j < numOutStreams; j++){
-                    folder.unpackSizes.push(this.currentBuffer.readNumber());
+                    folder.unpackSizes.push(this.inByteBack.readNumber());
                 }
             }
 
             for (;;)
             {
-                var type:number = this.currentBuffer.readID();
+                var type:number = this.inByteBack.readID();
                 if (type == kEnd){
                     return;
                 }
@@ -270,43 +256,41 @@ module nid {
                     }
                     continue;
                 }
-                this.currentBuffer.skipData2();
+                this.inByteBack.skipData2();
             }
         }
         public readHeader()
         {
-            var type = this.currentBuffer.readID();
+            var type = this.inByteBack.readID();
 
             if (type == kArchiveProperties)
             {
                 this.readArchiveProperties();
-                type = this.currentBuffer.readID();
+                type = this.inByteBack.readID();
             }
 
             var dataVector:Array<ByteBuffer> = [];
 
             if (type == kAdditionalStreamsInfo)
             {
-                var result = this.readAndDecodePackedStreams(
-                    this.db.archiveInfo.startPositionAfterHeader,
-                    this.db.archiveInfo.dataStartPosition2,
-                    dataVector);
+                var result = this.readAndDecodePackedStreams(dataVector);
 
                 if(result){
-                    console.log('readAndDecodePackedStreams:OK');
+                    console.log('kAdditionalStreamsInfo:OK');
                 }
                 this.db.archiveInfo.dataStartPosition2 += this.db.archiveInfo.startPositionAfterHeader;
-                type = this.currentBuffer.readID();
+                type = this.inByteBack.readID();
             }
 
-            var unpackSizes:Array<number>;
-            var digestsDefined:boolean;
-            var digests:Array<number>;
+            var unpackSizes:Array<number> = [];
+            var digestsDefined:Array<boolean> = [];
+            var digests:Array<number> =[];
 
             if (type == kMainStreamsInfo)
             {
-                this.readStreamsInfo(dataVector,
-                    this.db.archiveInfo.dataStartPosition,
+
+                this.readStreamsInfo(
+                    dataVector,
                     this.db.packSizes,
                     this.db.packCRCsDefined,
                     this.db.packCRCs,
@@ -314,9 +298,11 @@ module nid {
                     this.db.numUnpackStreamsVector,
                     unpackSizes,
                     digestsDefined,
-                    digests);
+                    digests
+                );
+
                 this.db.archiveInfo.dataStartPosition += this.db.archiveInfo.startPositionAfterHeader;
-                type = this.currentBuffer.readID();
+                type = this.inByteBack.readID();
             }
             else
             {
@@ -324,7 +310,7 @@ module nid {
                 {
                     this.db.numUnpackStreamsVector.push(1);
                     var folder:Folder = this.db.folders[i];
-                    unpackSizes.push(folder.getUnpacklength);
+                    unpackSizes.push(folder.getUnpackSize());
                     digestsDefined.push(folder.unpackCRCDefined);
                     digests.push(folder.unpackCRC);
                 }
@@ -339,7 +325,7 @@ module nid {
                 console.log('Incorrect');
             }
 
-            var numFiles:number = this.currentBuffer.readNum();
+            var numFiles:number = this.inByteBack.readNum();
             //this.db.files.reserve(numFiles);
             var i;
             for (i = 0; i < numFiles; i++) {
@@ -360,12 +346,12 @@ module nid {
 
             for (;;)
             {
-                var type = this.currentBuffer.readID();
+                var type = this.inByteBack.readID();
                 if (type == kEnd){
                     break;
                 }
-                var size:number = this.currentBuffer.readNumber();//UInt64
-                var ppp:number = this.currentBuffer.position;
+                var size:number = this.inByteBack.readNumber();//UInt64
+                var ppp:number = this.inByteBack.position;
                 var addPropIdToList:boolean = true;
                 var isKnownType:boolean = true;
                 if (type > (1 << 30)){
@@ -376,10 +362,10 @@ module nid {
                     case kName:
                     {
                         var streamSwitch:StreamSwitch = new StreamSwitch();
-                        streamSwitch.set(this, dataVector);
+                        streamSwitch.set3(this, dataVector);
 
                         for (var i = 0; i < this.db.files.length; i++){
-                            this.db.files[i].name = this.currentBuffer.readString();
+                            this.db.files[i].name = this.inByteBack.readString();
                         }
 
                         break;
@@ -390,14 +376,14 @@ module nid {
                         this.readBoolVector2(this.db.files.length, boolVector);
 
                         streamSwitch = new StreamSwitch();
-                        streamSwitch.set(this, dataVector);
+                        streamSwitch.set3(this, dataVector);
 
                         for (i = 0; i < numFiles; i++)
                         {
                             var file:FileItem = this.db.files[i];
                             file.attribDefined = boolVector[i];
                             if (file.attribDefined){
-                                file.attrib = this.currentBuffer.readUInt32();
+                                file.attrib = this.inByteBack.readUInt32();
                             }
                         }
                         break;
@@ -424,7 +410,7 @@ module nid {
                     case kDummy:
                     {
                         for (var j = 0; j < size; j++)
-                        if (this.currentBuffer.readByte() != 0) {
+                        if (this.inByteBack.readByte() != 0) {
                             console.log('Incorrect');
                         }
                         addPropIdToList = false;
@@ -440,11 +426,11 @@ module nid {
                         this.db.archiveInfo.fileInfoPopIDs.push(type);
                 }
                 else{
-                    this.currentBuffer.skipData(size);
+                    this.inByteBack.skipData(size);
                 }
 
                 var checkRecordsSize:boolean = (this.db.archiveInfo.versionMajor > 0 || this.db.archiveInfo.versionMinor > 2);
-                if (checkRecordsSize && this.currentBuffer.position - ppp != size){
+                if (checkRecordsSize && this.inByteBack.position - ppp != size){
                     console.log('Incorrect');
                 }
 
@@ -491,28 +477,29 @@ module nid {
         public readArchiveProperties(){
             for (;;)
             {
-                if (this.currentBuffer.readID() == kEnd){
+                if (this.inByteBack.readID() == kEnd){
                     break;
                 }
-                this.currentBuffer.skipData2();
+                this.inByteBack.skipData2();
             }
         }
-        public readPackInfo(dataOffset, packSizes, packCRCsDefined, packCRCs)
+        public readPackInfo(packSizes, packCRCsDefined, packCRCs)
         {
-            dataOffset = this.currentBuffer.readNumber();
-            var numPackStreams:number = this.currentBuffer.readNum();
+            this.dataOffset = this.inByteBack.readNumber();
+            this.db.archiveInfo.dataStartPosition = this.dataOffset;
+            var numPackStreams:number = this.inByteBack.readNum();
 
             this.waitAttribute(kSize);
             packSizes.clear();
             //packSizes.Reserve(numPackStreams);
             for (var i = 0; i < numPackStreams; i++){
-                packSizes.push(this.currentBuffer.readNumber());
+                packSizes.push(this.inByteBack.readNumber());
             }
 
             var type;
             for (;;)
             {
-                type = this.currentBuffer.readID();
+                type = this.inByteBack.readID();
                 if (type == kEnd){
                     break;
                 }
@@ -521,7 +508,7 @@ module nid {
                     this.readHashDigests(numPackStreams, packCRCsDefined, packCRCs);
                     continue;
                 }
-                this.currentBuffer.skipData2();
+                this.inByteBack.skipData2();
             }
             if (packCRCsDefined.length == 0)
             {
@@ -532,7 +519,6 @@ module nid {
                     packCRCs.push(0);
                 }
             }
-
         }
         public readHashDigests(numItems, digestsDefined, digests)//UInt64
         {
@@ -543,7 +529,7 @@ module nid {
             {
                 var crc:number = 0;//UInt32
                 if (digestsDefined[i]){
-                    crc = this.currentBuffer.readUInt32();
+                    crc = this.inByteBack.readUInt32();
                 }
                 digests.push(crc);
             }
@@ -552,32 +538,31 @@ module nid {
         {
             for (;;)
             {
-                var type:number = this.currentBuffer.readID();//UInt64
+                var type:number = this.inByteBack.readID();//UInt64
                 if (type == attribute){
                     return;
                 }
                 if (type == kEnd){
                     console.log('Incorrect');
                 }
-                this.currentBuffer.skipData2();
+                this.inByteBack.skipData2();
             }
         }
-        public readUnpackInfo(dataVector, folders)
+        public readUnpackInfo(dataVector:Array<ByteBuffer>, folders:Array<Folder>)
         {
             this.waitAttribute(kFolder);
-            var numFolders:number = this.currentBuffer.readNum();
+            var numFolders:number = this.inByteBack.readNum();
 
+            var streamSwitch:StreamSwitch;
+            streamSwitch.set3(this, dataVector);
+            folders.clear();
+
+            //folders.Reserve(numFolders);
+            for (var i = 0; i < numFolders; i++)
             {
-                var streamSwitch:StreamSwitch;
-                streamSwitch.set(this, dataVector);
-                folders.clear();
-                //folders.Reserve(numFolders);
-                for (var i = 0; i < numFolders; i++)
-                {
-                    var folder:Folder = new Folder();
-                    folders.push(folder);
-                    this.getNextFolderItem(folder);
-                }
+                var folder:Folder = new Folder();
+                folders.push(folder);
+                this.getNextFolderItem(folder);
             }
 
             this.waitAttribute(kCodersUnpackSize);
@@ -589,13 +574,13 @@ module nid {
                 var numOutStreams = folder.getNumOutStreams();
                 //folder.unpackSizes.Reserve(numOutStreams);
                 for (var j = 0; j < numOutStreams; j++){
-                    folder.unpackSizes.push(this.currentBuffer.readNumber());
+                    folder.unpackSizes.push(this.inByteBack.readNumber());
                 }
             }
 
             for (;;)
             {
-                var type = this.currentBuffer.readID();
+                var type = this.inByteBack.readID();
 
                 if (type == kEnd){
                     return;
@@ -614,13 +599,13 @@ module nid {
                     }
                     continue;
                 }
-                this.currentBuffer.skipData2();
+                this.inByteBack.skipData2();
             }
 
         }
         public getNextFolderItem(folder) {
 
-            var numCoders:number = this.currentBuffer.readNum();
+            var numCoders:number = this.inByteBack.readNum();
 
             folder.coders.clear();
             //folder.coders.Reserve((int)
@@ -632,11 +617,11 @@ module nid {
                 folder.coders.push(coder);
 
                 {
-                    var mainByte:number = this.currentBuffer.readByte();
+                    var mainByte:number = this.inByteBack.readByte();
                     var idSize:number = (mainByte & 0xF);
                     var longID:ByteBuffer = new ByteBuffer();//[15];
                     longID.setCapacity(15);
-                    this.currentBuffer.readBytes(longID, idSize);
+                    this.inByteBack.readBytes(longID, idSize);
                     if (idSize > 8){
                         console.log('Unsupported');
                     }
@@ -650,8 +635,8 @@ module nid {
                     coder.methodID = id;
 
                     if ((mainByte & 0x10) != 0) {
-                        coder.numInStreams = this.currentBuffer.readNum();
-                        coder.numOutStreams = this.currentBuffer.readNum();
+                        coder.numInStreams = this.inByteBack.readNum();
+                        coder.numOutStreams = this.inByteBack.readNum();
                     }
                     else
                     {
@@ -659,9 +644,9 @@ module nid {
                         coder.numOutStreams = 1;
                     }
                     if ((mainByte & 0x20) != 0) {
-                        var propsSize:number = this.currentBuffer.readNum();
+                        var propsSize:number = this.inByteBack.readNum();
                         coder.props.setCapacity(propsSize);
-                        this.currentBuffer.readBytes(coder.props,propsSize);
+                        this.inByteBack.readBytes(coder.props,propsSize);
                     }
                     if ((mainByte & 0x80) != 0){
                         console.log('Unsupported');
@@ -676,8 +661,8 @@ module nid {
             //folder.BindPairs.Reserve(numBindPairs);
             for (i = 0; i < numBindPairs; i++) {
                 var bp:BindPair = new BindPair();
-                bp.inIndex = this.currentBuffer.readNum();
-                bp.outIndex = this.currentBuffer.readNum();
+                bp.inIndex = this.inByteBack.readNum();
+                bp.outIndex = this.inByteBack.readNum();
                 folder.bindPairs.push(bp);
             }
 
@@ -698,7 +683,7 @@ module nid {
             }
             else{
                 for (i = 0; i < numPackStreams; i++){
-                    folder.packStreams.push(this.currentBuffer.readNum());
+                    folder.packStreams.push(this.inByteBack.readNum());
                 }
             }
         }
@@ -709,18 +694,18 @@ module nid {
             var type:number;
             for (;;)
             {
-                type = this.currentBuffer.readID();
+                type = this.inByteBack.readID();
                 if (type == kNumUnpackStream)
                 {
                     for (var i = 0; i < folders.length; i++){
-                        numUnpackStreamsInFolders.push(this.currentBuffer.readNum());
+                        numUnpackStreamsInFolders.push(this.inByteBack.readNum());
                     }
                     continue;
                 }
                 if (type == kCRC || type == kSize || type == kEnd){
                     break;
                 }
-                this.currentBuffer.skipData2();
+                this.inByteBack.skipData2();
             }
 
             if (numUnpackStreamsInFolders.length == 0){
@@ -743,7 +728,7 @@ module nid {
                 for (var j = 1; j < numSubstreams; j++){
                     if (type == kSize)
                     {
-                        var size:number = this.currentBuffer.readNumber();//UInt64
+                        var size:number = this.inByteBack.readNumber();//UInt64
                         unpackSizes.push(size);
                         sum += size;
                     }
@@ -751,7 +736,7 @@ module nid {
                 unpackSizes.push(folders[i].getUnpacklength - sum);
             }
             if (type == kSize){
-                type = this.currentBuffer.readID();
+                type = this.inByteBack.readID();
             }
 
             var numDigests = 0;
@@ -803,37 +788,38 @@ module nid {
                     return;
                 }
                 else{
-                    this.currentBuffer.skipData2();
+                    this.inByteBack.skipData2();
                 }
-                type = this.currentBuffer.readID();
+                type = this.inByteBack.readID();
             }
         }
 
         public readStreamsInfo(
                 dataVector:Array<ByteBuffer>,
-                dataOffset:number,
                 packSizes:Array<number>,
-                packCRCsDefined,
+                packCRCsDefined:Array<boolean>,
                 packCRCs:Array<number>,
                 folders:Array<Folder>,
                 numUnpackStreamsInFolders:Array<number>,
                 unpackSizes:Array<number>,
-                digestsDefined,
+                digestsDefined:Array<boolean>,
                 digests:Array<number>){
 
             for (;;)
             {
-                var type:number = this.currentBuffer.readID();//UInt64
+                var type:number = this.inByteBack.readID();//UInt64
+
                 if (type > (1 << 30)) {
                     console.log('Incorrect');
                 }
+
                 switch(type)
                 {
                     case kEnd:
                         return;
                     case kPackInfo:
                     {
-                        this.readPackInfo(dataOffset, packSizes, packCRCsDefined, packCRCs);
+                        this.readPackInfo(packSizes, packCRCsDefined, packCRCs);
                         break;
                     }
                     case kUnpackInfo:
@@ -849,8 +835,8 @@ module nid {
                     }
                     default:
                         console.log('Incorrect');
-                    }
                 }
+            }
         }
         public readBoolVector(numItems, v)
         {
@@ -858,14 +844,14 @@ module nid {
              * TODO: migrate to TypedArray from Array
              */
             v.splice(0,v.length);
-            //v.reserve(numItems);
+            v.reserve(numItems);
             var b:number = 0;//Byte
             var mask:number = 0;//Byte
             for (var i = 0; i < numItems; i++)
             {
                 if (mask == 0)
                 {
-                    b = this.currentBuffer.readByte();
+                    b = this.inByteBack.readByte();
                     mask = 0x80;
                 }
                 v.push((b & mask) != 0);
@@ -875,14 +861,14 @@ module nid {
         }
         public readBoolVector2(numItems, v)
         {
-            var allAreDefined:number = this.currentBuffer.readByte();//Byte
+            var allAreDefined:number = this.inByteBack.readByte();//Byte
             if (allAreDefined == 0)
             {
                 this.readBoolVector(numItems, v);
                 return;
             }
             v.splice(0,v.length);
-            //v.reserve(numItems);
+            v.reserve(numItems);
             for (var i = 0; i < numItems; i++){
                 v.push(true);
             }
@@ -890,18 +876,19 @@ module nid {
         }
         public readUInt64DefVector(dataVector,v,numFiles)
         {
-            this.readBoolVector2(numFiles, v.Defined);
+            this.readBoolVector2(numFiles, v.defined);
 
             var streamSwitch:StreamSwitch = new StreamSwitch();
-            streamSwitch.set(this,dataVector);
-            v.Values.Reserve(numFiles);
+            streamSwitch.set3(this,dataVector);
+            v.values.reserve(numFiles);
 
             for (var i = 0; i < numFiles; i++)
             {
                 var t:number = 0;//UInt64
-                if (v.Defined[i])
-                    t = this.currentBuffer.readUInt64().value();
-                v.Values.push(t);
+                if (v.defined[i]){
+                    t = this.inByteBack.readUInt64().value();
+                }
+                v.values.push(t);
             }
         }
         public boolVector_Fill_False(boolVector,size){
@@ -911,6 +898,17 @@ module nid {
         }
         public readDatabase2(){
 
+        }
+        public deleteByteStream(){
+            this.inByteVector.pop();
+            if (this.inByteVector.length > 0){
+                this.inByteBack = this.inByteVector[this.inByteVector.length-1];
+            }
+        }
+        public addByteStream(buffer, size){
+            this.inByteBack = new InByte2();
+            this.inByteVector.push(this.inByteBack);
+            this.inByteBack.init(buffer, size);
         }
     }
 }
