@@ -1,4 +1,5 @@
 interface Array<T> {
+    back();
     clear();
     reserve(size);
     ElementClass;
@@ -6,6 +7,9 @@ interface Array<T> {
 Array.prototype.ElementClass = null;
 Array.prototype.clear = function(){
     this.splice(0,this.length);
+}
+Array.prototype.back = function(){
+    return this[this.length-1];
 }
 Array.prototype.reserve = function(size){
     if(this.ElementClass != null && this.ElementClass != undefined){

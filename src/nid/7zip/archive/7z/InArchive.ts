@@ -95,10 +95,10 @@ module nid {
 
             this.stream.position = this.nextHeaderOffset;
 
-            this.inByteBack = new ByteBuffer();
-            this.inByteBack.setCapacity(this.nextHeaderSize);
+            var buffer2:ByteBuffer = new ByteBuffer();
+            buffer2.setCapacity(this.nextHeaderSize);
 
-            this.stream.readBytes(this.inByteBack,this.nextHeaderSize);
+            this.stream.readBytes(buffer2,this.nextHeaderSize);
             this.headersSize += _7zipDefines.kHeaderSize + this.nextHeaderSize;
             this.db.phySize = _7zipDefines.kHeaderSize + this.nextHeaderOffset + this.nextHeaderSize;
 
@@ -108,6 +108,9 @@ module nid {
             /*if (this.CrcCalc(buffer2, this.nextHeaderSize) != this.nextHeaderCRC){
                 console.log('Incorrect');
             }*/
+
+            var streamSwitch:StreamSwitch = new StreamSwitch();
+            streamSwitch.set2(this,buffer2);
 
             var dataVector:Array<ByteBuffer> = [];
 
@@ -131,10 +134,8 @@ module nid {
                     console.log('Incorrect');
                 }
 
-                /*streamSwitch.remove();
-                streamSwitch.set(this, dataVector[0]);*/
-
-                this.inByteBack = dataVector[0];
+                streamSwitch.remove();
+                streamSwitch.set3(this, dataVector);
 
                 if (this.inByteBack.readID() != kHeader){
                     console.log('Incorrect');

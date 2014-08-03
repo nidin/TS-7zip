@@ -7,13 +7,11 @@ module nid {
      * @author Nidin Vinayakan | nidinthb@gmail.com
      */
 
-    import ByteArray = nid.utils.ByteArray;
-    import UInt64 = ctypes.UInt64;
-
-    export class CoderInfo2 {
-
-        constructor(){
-
-        }
+    export class LzmaProbs
+    {
+        public lc:number;
+        public lp:number;
+        public pb:number;
+        public dicSize:number;
     }
 }

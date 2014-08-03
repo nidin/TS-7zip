@@ -6,18 +6,14 @@ module nid {
      * Version 0.1
      * @author Nidin Vinayakan | nidinthb@gmail.com
      */
+    export class CoderFactory
+    {
 
-    import ByteArray = nid.utils.ByteArray;
-    import UInt64 = ctypes.UInt64;
-
-    export class LockedSequentialInStreamImp extends ByteBuffer{
         constructor(){
-            super();
+
         }
-        public init(inStream,startPos){
-            super.buffer = inStream.buffer;
-            super.offset = startPos;
+        static createCoder(methodId:number,coder:ICompressCoder,coder2:ICompressCoder2,encode:boolean):ICoder {
+            return null;
         }
     }
-
 }

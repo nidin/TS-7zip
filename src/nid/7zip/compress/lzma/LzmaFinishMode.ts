@@ -7,13 +7,6 @@ module nid {
      * @author Nidin Vinayakan | nidinthb@gmail.com
      */
 
-    import ByteArray = nid.utils.ByteArray;
-    import UInt64 = ctypes.UInt64;
-
-    export class CoderInfo2 {
-
-        constructor(){
-
-        }
-    }
+    export var LZMA_FINISH_ANY:number   = 0; /* finish at any point */
+    export var LZMA_FINISH_END:number   = 1; /* block must be finished at the end */
 }

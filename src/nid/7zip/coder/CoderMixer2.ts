@@ -12,11 +12,14 @@ module nid {
 
     export class CoderMixer2 {
 
-        constructor(){
+        public coders
+        public bindInfo:BindInfo;
 
+        constructor(){
+            this.coders = [];
         }
         public setBindInfo(bindInfo:BindInfo){
-
+            this.bindInfo = bindInfo;
         }
         public reInit(){
 

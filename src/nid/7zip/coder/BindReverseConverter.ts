@@ -10,7 +10,7 @@ module nid {
     import ByteArray = nid.utils.ByteArray;
     import UInt64 = ctypes.UInt64;
 
-    export class CoderMixer2MT {
+    export class BindReverseConverter {
 
         constructor(){
 

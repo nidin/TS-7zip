@@ -12,8 +12,14 @@ module nid {
 
     export class STCoderInfo {
 
-        constructor(){
+        public numInStreams:number;
+        public numOutStreams:number;
+        public isMain:boolean;
 
+        constructor(numInStreams:number, numOutStreams:number, isMain:boolean){
+            this.numInStreams = numInStreams;
+            this.numOutStreams = numOutStreams;
+            this.isMain = isMain;
         }
     }
 }

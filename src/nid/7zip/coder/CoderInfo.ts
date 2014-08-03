@@ -8,6 +8,11 @@ module nid {
      */
     export class CoderInfo
     {
+        public coder:ICompressCoder;
+        public inStream:ISequentialInStream;
+        public outStream:ISequentialOutStream;
+        public progress:ICompressProgressInfo;
+
         public methodID:number;//UInt64
         public props:ByteBuffer;
         public numInStreams:number;

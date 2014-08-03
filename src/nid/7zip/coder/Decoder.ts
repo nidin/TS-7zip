@@ -134,6 +134,7 @@ module nid {
             Decoder.convertFolderItemInfoToBindInfo(folderInfo,bindInfo);
 
             var createNewCoders:boolean;
+
             if (!this.bindInfoExPrevIsDefined){
                 createNewCoders = true;
             }
@@ -169,7 +170,7 @@ module nid {
                     var decoder;
                     var decoder2;
 
-                    this.createCoder(coderInfo.methodID, decoder, decoder2, false);
+                    CoderFactory.createCoder(coderInfo.methodID, decoder, decoder2, false);
 
                     var decoderUnknown;
 
@@ -219,19 +220,20 @@ module nid {
                 var coderInfo:CoderInfo = folderInfo.coders[i];
                 var decoder = this.decoders[coderIndex];
 
-                CMyComPtr<ICompressSetDecoderProperties2> setDecoderProperties;
-                decoder.QueryInterface(IID_ICompressSetDecoderProperties2, &setDecoderProperties);
+                /*var setDecoderProperties:ICompressSetDecoderProperties2;
                 if (setDecoderProperties)
                 {
-                    const CByteBuffer &props = coderInfo.Props;
-                    size_t size = props.GetCapacity();
-                    if (size > 0xFFFFFFFF)
-                        return E_NOTIMPL;
-                    // if (size > 0)
-                    {
-                        RINOK(setDecoderProperties->SetDecoderProperties2((const Byte *)props, size));
+                    var props:ByteBuffer = coderInfo.props;
+                    var size = props.length;
+                    if (size > 0xFFFFFFFF){
+                        console.log('Not Implemented');
+                        return false;
                     }
-                }
+                    if (size > 0)
+                    {
+                        setDecoderProperties.setDecoderProperties2(props, size);
+                    }
+                }*/
 
                 coderIndex++;
 
@@ -286,7 +288,7 @@ module nid {
                 inStreamPointers.push(inStreams[i]);
             }
             var outStreamPointer = outStream;
-            return this.mixerCoder.code(inStreamPointers[0], NULL,inStreams.length, outStreamPointer, NULL, 1, compressProgress);
+            return this.mixerCoder.code(inStreamPointers[0], null,inStreams.length, outStreamPointer, null, 1, compressProgress);
         }
     }
 }
