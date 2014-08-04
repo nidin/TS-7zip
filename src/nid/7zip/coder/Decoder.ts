@@ -168,10 +168,10 @@ module nid {
                     var coderInfo:CoderInfo = folderInfo.coders[i];
 
 
-                    var decoder;
-                    var decoder2;
+                    var decoders:any = CoderFactory.createCoder(coderInfo.methodID,false);
 
-                    CoderFactory.createCoder(coderInfo.methodID, decoder, decoder2, false);
+                    var decoder  = decoders.coder;
+                    var decoder2 = decoders.coder2;
 
                     var decoderUnknown;
 
@@ -193,7 +193,7 @@ module nid {
                     }
                     else
                     {
-                        if (decoder2 == 0){
+                        if (decoder2 == null){
                             return console.log('not implemented');
                             return false;
                         }

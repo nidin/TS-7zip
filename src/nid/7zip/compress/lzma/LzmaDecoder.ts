@@ -74,15 +74,16 @@ module nid {
                 var dicPos = this.state.dicPos;
                 var curSize = next - dicPos;
 
-                ELzmaFinishMode finishMode = LZMA_FINISH_ANY;
+                var finishMode:number = LZMA_FINISH_ANY;
                 if (this.outSizeDefined)
                 {
-                    const var rem = this.outSize - this.outSizeProcessed;
+                    var rem = this.outSize - this.outSizeProcessed;
                     if (rem <= curSize)
                     {
-                        curSize = (SizeT)rem;
-                        if (FinishStream)
+                        curSize = rem;
+                        if (this.finishStream) {
                             finishMode = LZMA_FINISH_END;
+                        }
                     }
                 }
 

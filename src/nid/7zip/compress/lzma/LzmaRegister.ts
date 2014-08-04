@@ -7,21 +7,21 @@ module nid {
      * Version 0.1
      * @author Nidin Vinayakan | nidinthb@gmail.com
      */
+    export class LzmaRegister
+    {
 
-    import ByteArray = nid.utils.ByteArray;
-    import UInt64 = ctypes.UInt64;
-
-    export class CoderMixer2MT extends CoderMixer2{
-
-        constructor(){
+        public createEncoder(){
 
         }
-
-        public addCoder(coder){
-
-        }
-        public addCoder2(coder,isMain:boolean=false){
+        public createDecoder(){
 
         }
+        public codecInfo:CodecInfo = new CodecInfo(
+            0x030101,
+            "LZMA",
+            1,
+            this.createEncoder,
+            this.createDecoder
+        )
     }
 }

@@ -12,7 +12,7 @@ module nid {
     import UInt64 = ctypes.UInt64;
 
     export interface ISequentialInStream {
-
+        read(inBuf:ByteBuffer, inBufSizeAllocated:number, inSize:number)
     }
 
 }
