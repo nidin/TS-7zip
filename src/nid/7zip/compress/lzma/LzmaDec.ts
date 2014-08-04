@@ -12,6 +12,119 @@ module nid {
 
     export class LzmaDec{
 
+        static kNumTopBits:number = 24
+        static kTopValue:number = (1 << LzmaDec.kNumTopBits)
+    
+        static kNumBitModelTotalBits:number = 11;
+        static kBitModelTotal:number =  (1 << kNumBitModelTotalBits)
+        static kNumMoveBits:number = 5;
+    
+        static RC_INIT_SIZE:number = 5;
+    
+        private NORMALIZE(){
+            if (this.range < LzmaDec.kTopValue) { this.range <<= 8; this.code = (this.code << 8) | (buf++); }
+        }
+
+        static IF_BIT_0(p) ttt = *(p); NORMALIZE; bound = (range >> kNumBitModelTotalBits) * ttt; if (code < bound)
+            static UPDATE_0(p) range = bound; *(p) = (CLzmaProb)(ttt + ((kBitModelTotal - ttt) >> kNumMoveBits));
+        static UPDATE_1(p) range -= bound; code -= bound; *(p) = (CLzmaProb)(ttt - (ttt >> kNumMoveBits));
+        static GET_BIT2(p, i, A0, A1) IF_BIT_0(p) \
+          { UPDATE_0(p); i = (i + i); A0; } else \
+          { UPDATE_1(p); i = (i + i) + 1; A1; }
+        static GET_BIT(p, i) GET_BIT2(p, i, ; , ;)
+        
+        static TREE_GET_BIT(probs, i) { GET_BIT((probs + i), i); }
+        static TREE_DECODE(probs, limit, i) \
+          { i = 1; do { TREE_GET_BIT(probs, i); } while (i < limit); i -= limit; }
+        
+            /* static _LZMA_SIZE_OPT */
+        
+        #ifdef _LZMA_SIZE_OPT
+        static TREE_6_DECODE(probs, i) TREE_DECODE(probs, (1 << 6), i)
+        #else
+        static TREE_6_DECODE(probs, i) \
+          { i = 1; \
+          TREE_GET_BIT(probs, i); \
+          TREE_GET_BIT(probs, i); \
+          TREE_GET_BIT(probs, i); \
+          TREE_GET_BIT(probs, i); \
+          TREE_GET_BIT(probs, i); \
+          TREE_GET_BIT(probs, i); \
+          i -= 0x40; }
+        #endif
+        
+        static NORMALIZE_CHECK if (range < kTopValue) { if (buf >= bufLimit) return DUMMY_ERROR; range <<= 8; code = (code << 8) | (*buf++); }
+        
+        static IF_BIT_0_CHECK(p) ttt = *(p); NORMALIZE_CHECK; bound = (range >> kNumBitModelTotalBits) * ttt; if (code < bound)
+            static UPDATE_0_CHECK range = bound;
+        static UPDATE_1_CHECK range -= bound; code -= bound;
+        static GET_BIT2_CHECK(p, i, A0, A1) IF_BIT_0_CHECK(p) \
+          { UPDATE_0_CHECK; i = (i + i); A0; } else \
+          { UPDATE_1_CHECK; i = (i + i) + 1; A1; }
+        static GET_BIT_CHECK(p, i) GET_BIT2_CHECK(p, i, ; , ;)
+        static TREE_DECODE_CHECK(probs, limit, i) \
+          { i = 1; do { GET_BIT_CHECK(probs + i, i) } while (i < limit); i -= limit; }
+        
+        
+        static kNumPosBitsMax 4
+        static kNumPosStatesMax (1 << kNumPosBitsMax)
+        
+        static kLenNumLowBits 3
+        static kLenNumLowSymbols (1 << kLenNumLowBits)
+        static kLenNumMidBits 3
+        static kLenNumMidSymbols (1 << kLenNumMidBits)
+        static kLenNumHighBits 8
+        static kLenNumHighSymbols (1 << kLenNumHighBits)
+        
+        static LenChoice 0
+        static LenChoice2 (LenChoice + 1)
+        static LenLow (LenChoice2 + 1)
+        static LenMid (LenLow + (kNumPosStatesMax << kLenNumLowBits))
+        static LenHigh (LenMid + (kNumPosStatesMax << kLenNumMidBits))
+        static kNumLenProbs (LenHigh + kLenNumHighSymbols)
+        
+        
+        static kNumStates 12
+        static kNumLitStates 7
+        
+        static kStartPosModelIndex 4
+        static kEndPosModelIndex 14
+        static kNumFullDistances (1 << (kEndPosModelIndex >> 1))
+        
+        static kNumPosSlotBits 6
+        static kNumLenToPosStates 4
+        
+        static kNumAlignBits 4
+        static kAlignTableSize (1 << kNumAlignBits)
+        
+        static kMatchMinLen 2
+        static kMatchSpecLenStart (kMatchMinLen + kLenNumLowSymbols + kLenNumMidSymbols + kLenNumHighSymbols)
+        
+        static IsMatch 0
+        static IsRep (IsMatch + (kNumStates << kNumPosBitsMax))
+        static IsRepG0 (IsRep + kNumStates)
+        static IsRepG1 (IsRepG0 + kNumStates)
+        static IsRepG2 (IsRepG1 + kNumStates)
+        static IsRep0Long (IsRepG2 + kNumStates)
+        static PosSlot (IsRep0Long + (kNumStates << kNumPosBitsMax))
+        static SpecPos (PosSlot + (kNumLenToPosStates << kNumPosSlotBits))
+        static Align (SpecPos + kNumFullDistances - kEndPosModelIndex)
+        static LenCoder (Align + kAlignTableSize)
+        static RepLenCoder (LenCoder + kNumLenProbs)
+        static Literal (RepLenCoder + kNumLenProbs)
+        
+        static LZMA_BASE_SIZE 1846
+        static LZMA_LIT_SIZE 768
+        
+        static LzmaProps_GetNumProbs(p) ((UInt32)LZMA_BASE_SIZE + (LZMA_LIT_SIZE << ((p)->lc + (p)->lp)))
+        
+        #if Literal != LZMA_BASE_SIZE
+            StopCompilingDueBUG
+        #endif
+        
+        static LZMA_DIC_MIN (1 << 12)
+        
+        
         static LZMA_REQUIRED_INPUT_MAX:number = 20;
         static LZMA_PROPS_SIZE:number = 5;
         static LZMA_DIC_MIN:number = (1 << 12);
