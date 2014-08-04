@@ -1,3 +1,4 @@
+///<reference path="../7zip.d.ts" />
 module nid {
 
     /**
@@ -20,7 +21,7 @@ module nid {
         }
         public clear(){
             this.coderMethodIDs = [];
-            super.clear();
+            this.clear();
         }
     }
 

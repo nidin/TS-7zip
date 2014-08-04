@@ -1,3 +1,4 @@
+///<reference path="../7zip.d.ts" />
 module nid {
 
     /**

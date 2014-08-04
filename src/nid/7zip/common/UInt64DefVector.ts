@@ -7,10 +7,6 @@ module nid {
      * @author Nidin Vinayakan | nidinthb@gmail.com
      */
 
-    import ByteArray = nid.utils.ByteArray;
-    import Uint64 = ctypes.UInt64;
-    import Int64 = ctypes.Int64;
-
     export class UInt64DefVector {
 
         public values:Array<number>;

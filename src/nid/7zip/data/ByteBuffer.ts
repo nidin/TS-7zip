@@ -1,3 +1,4 @@
+///<reference path="../7zip.d.ts" />
 module nid {
 
     /**
@@ -17,21 +18,11 @@ module nid {
         }
         public setCapacity(size:number)
         {
-            super.buffer = new ArrayBuffer(size);
+            this.buffer = new ArrayBuffer(size);
         }
-        public readByte()
-        {
-            return super.readByte();
-        }
-
-        public readBytes(data,size)
-        {
-            super.readBytes(data,0,size);
-        }
-
         public skipData(size)
         {
-            super.position += size;
+            this.position += size;
         }
 
         public skipData2()
@@ -45,7 +36,7 @@ module nid {
         }
         public readNumber():number//UInt64
         {
-            var firstByte:number = super.readByte();
+            var firstByte:number = this.readByte();
             var mask = 0x80;
             //var value:UInt64 = new UInt64();
             var value:number = 0;
@@ -57,7 +48,7 @@ module nid {
                     value += (highPart << (i * 8));
                     return value;
                 }
-                value |= (super.readByte() << (8 * i));
+                value |= (this.readByte() << (8 * i));
                 mask >>= 1;
             }
             return value;
@@ -73,18 +64,18 @@ module nid {
 
         public readUInt32()
         {
-            return super.readUnsignedInt();
+            return this.readUnsignedInt();
         }
 
         public readUInt64()
         {
-            return super.readUnsignedInt64();
+            return this.readUnsignedInt64();
         }
 
         public readString():string
         {
-            var rem:number = (super.bytesAvailable) / 2 * 2;
-            return super.readUTFBytes(rem);
+            var rem:number = (this.bytesAvailable) / 2 * 2;
+            return this.readUTFBytes(rem);
         }
     }
 }

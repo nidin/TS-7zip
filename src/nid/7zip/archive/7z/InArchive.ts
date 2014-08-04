@@ -492,7 +492,8 @@ module nid {
 
             this.waitAttribute(kSize);
             packSizes.clear();
-            //packSizes.Reserve(numPackStreams);
+            //packSizes.reserve(numPackStreams);
+
             for (var i = 0; i < numPackStreams; i++){
                 packSizes.push(this.inByteBack.readNumber());
             }

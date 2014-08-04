@@ -1,3 +1,4 @@
+///<reference path="../7zip.d.ts" />
 module nid {
 
     /**
@@ -18,15 +19,15 @@ module nid {
             super();
         }
         public setStream(inStream){
-            super.buffer = inStream.buffer;
+            this.buffer = inStream.buffer;
         }
         public releaseStream(){
 
         }
         public init(streamSize)//UInt64
         {
-            super.setCapacity(streamSize);
-            super.position = 0;
+            this.setCapacity(streamSize);
+            this.position = 0;
             this.wasFinished = false;
         }
     }

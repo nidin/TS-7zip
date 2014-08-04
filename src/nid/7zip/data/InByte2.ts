@@ -20,7 +20,7 @@ module nid {
 
         public init(data,size)
         {
-            super.buffer = data.buffer;
+            this.buffer = data.buffer;
         }
     }
 }

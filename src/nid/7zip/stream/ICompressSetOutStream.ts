@@ -7,14 +7,7 @@ module nid {
      * Version 0.1
      * @author Nidin Vinayakan | nidinthb@gmail.com
      */
+    export interface ICompressSetOutStream {
 
-    import ByteArray = nid.utils.ByteArray;
-    import UInt64 = ctypes.UInt64;
-
-    export class CoderInfo2 {
-
-        constructor(){
-
-        }
     }
 }

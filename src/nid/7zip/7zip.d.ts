@@ -22,6 +22,16 @@
 ///<reference path="7zipBase.ts" />
 
 //////////////////////////////////////
+//    COMPRESS
+/////////////////////////////////////
+///<reference path="./compress/lzma/Lzma2Decoder.ts" />
+///<reference path="./compress/lzma/LzmaDec.ts" />
+///<reference path="./compress/lzma/LzmaDecoder.ts" />
+///<reference path="./compress/lzma/LzmaFinishMode.ts" />
+///<reference path="./compress/lzma/LzmaProps.ts" />
+///<reference path="./compress/lzma/LzmaStatus.ts" />
+
+//////////////////////////////////////
 //    DATA
 /////////////////////////////////////
 ///<reference path="./data/ByteBuffer" />
@@ -36,8 +46,13 @@
 //    STREAMS
 /////////////////////////////////////
 ///<reference path="./stream/BufPtrSeqOutStream.ts" />
+///<reference path="./stream/ICompressSetInStream.ts" />
+///<reference path="./stream/ICompressSetOutStream.ts" />
+///<reference path="./stream/ICompressSetOutStreamSize.ts" />
 ///<reference path="./stream/InStream.ts" />
+///<reference path="./stream/ISequentialInStream.ts" />
 ///<reference path="./stream/ISequentialOutStream.ts" />
+///<reference path="./stream/LimitedInStream.ts" />
 ///<reference path="./stream/LimitedSequentialInStream.ts" />
 ///<reference path="./stream/LockedInStream.ts" />
 ///<reference path="./stream/LockedSequentialInStreamImp.ts" />
@@ -56,7 +71,12 @@
 ///<reference path="./coder/CoderMixer2ST.ts" />
 ///<reference path="./coder/CoderStreamsInfo.ts" />
 ///<reference path="./coder/Decoder.ts" />
+///<reference path="./coder/ICoder.ts" />
+///<reference path="./coder/ICompressCoder.ts" />
 ///<reference path="./coder/ICompressCoder2.ts" />
+///<reference path="./coder/ICompressProgressInfo.ts" />
+///<reference path="./coder/ICompressSetBufSize.ts" />
+///<reference path="./coder/ICompressSetDecoderProperties2.ts" />
 ///<reference path="./coder/STCoderInfo.ts" />
 //////////////////////////////////////
 //    7Z ARCHIVE

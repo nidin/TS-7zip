@@ -127,17 +127,17 @@ module nid {
                 p.dicPos = dicPos;
             }
         }
-        static LzmaDec_DecodeToDic(p:LzmaDec,dicLimit:number,src:ByteBuffer, srcLen:number,finishMode:number,status:number)
+        static LzmaDec_DecodeToDic(p:LzmaDec,dicLimit:number,src:ByteBuffer, srcLen:number,finishMode:number)
         {
             var inSize:number = srcLen;
             srcLen = 0;
             LzmaDec.LzmaDec_WriteRem(p, dicLimit);
 
-            *status = LZMA_STATUS_NOT_SPECIFIED;
+            var status:number = LZMA_STATUS_NOT_SPECIFIED;
 
                 while (p.remainLen != kMatchSpecLenStart)
                 {
-                    int checkEndMarkNow;
+                    var checkEndMarkNow;
 
                     if (p.needFlush != 0)
                     {
@@ -242,9 +242,9 @@ module nid {
                         p.tempBufSize = 0;
                     }
                 }
-        if (p.code == 0)
-            *status = LZMA_STATUS_FINISHED_WITH_MARK;
-        return (p.code == 0) ? SZ_OK : SZ_ERROR_DATA;
+            if (p.code == 0)
+                status = LZMA_STATUS_FINISHED_WITH_MARK;
+            return (p.code == null) ? SZ_OK : SZ_ERROR_DATA;
         }
     }
 }

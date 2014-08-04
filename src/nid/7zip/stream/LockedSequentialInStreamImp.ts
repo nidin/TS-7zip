@@ -1,3 +1,4 @@
+///<reference path="../7zip.d.ts" />
 module nid {
 
     /**
@@ -15,8 +16,8 @@ module nid {
             super();
         }
         public init(inStream,startPos){
-            super.buffer = inStream.buffer;
-            super.offset = startPos;
+            this.buffer = inStream.buffer;
+            this.offset = startPos;
         }
     }
 

@@ -1,3 +1,4 @@
+///<reference path="../7zip.d.ts" />
 module nid {
 
     /**
@@ -117,10 +118,10 @@ module nid {
                 return null;
             }
 
-            var result = this.bindInfo.findInStream(this.bindInfo.bindPairs[binderIndex].inIndex);
+            var result:Array = this.bindInfo.findInStream(this.bindInfo.bindPairs[binderIndex].inIndex);
 
-            var coderIndex:number           = result[0];
-            var coderStreamIndex:number;    = result[1];
+            var coderIndex:number          = result[0];
+            var coderStreamIndex:number    = result[1];
 
 
             var coder:CoderInfo = this.coders[coderIndex];
